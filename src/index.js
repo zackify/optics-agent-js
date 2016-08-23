@@ -1,1 +1,6 @@
-console.log("loaded");
+export {
+  setupOptics,
+  opticsMiddleware,
+  instrumentSchema,
+  newContext
+} from './OpticsAgent'
