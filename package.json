@@ -1,0 +1,22 @@
+{
+  "name": "optics-agent",
+  "version": "0.0.1",
+  "description": "Apollo Optics Agent for GraphQL-js",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/apollostack/optics-agent-js.git"
+  },
+  "keywords": [
+    "graphql"
+  ],
+  "author": "Meteor Development Group",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/apollostack/optics-agent-js/issues"
+  },
+  "homepage": "https://github.com/apollostack/optics-agent-js#readme"
+}
