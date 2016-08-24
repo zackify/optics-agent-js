@@ -1,6 +1,9 @@
 export {
-  setupOptics,
   opticsMiddleware,
   instrumentSchema,
-  newContext
-} from './OpticsAgent'
+  newContext,
+} from './Instrument'
+
+export {
+  setupOptics,
+} from './Config'
