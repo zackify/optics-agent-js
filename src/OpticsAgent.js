@@ -1,3 +1,7 @@
+import now from 'performance-now';
+
+import { reportRequest } from './Report';
+
 // internal global state
 export const _opticsConfig = {};
 
@@ -17,7 +21,21 @@ export const setupOptics = ({appKey}) => {
 
 
 export const opticsMiddleware = (req, res, next) => {
-  console.log("RRR");
+  const context = {
+    startTime: now(),
+    oldResEnd: res.end
+  };
+  req._opticsContext = context;
+
+  res.end = function () {
+    context.endTime = now();
+    context.oldResEnd.apply(res, arguments);
+
+    // put reporting later in the event loop after I/O, so hopefully we
+    // don't impact latency as much.
+    setImmediate(reportRequest(req));
+  };
+
   return next();
 };
 
