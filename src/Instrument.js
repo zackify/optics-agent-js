@@ -6,6 +6,7 @@ import { reportRequest } from './Report';
 
 export const opticsMiddleware = (req, res, next) => {
   const context = {
+    startWallTime: +new Date(),
     startTime: now(),
     oldResEnd: res.end
   };
