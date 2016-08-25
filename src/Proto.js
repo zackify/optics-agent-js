@@ -1,8 +1,5 @@
 import { loadProto } from 'protobufjs';
 
-
-
-
 // copied and pasted instead of a seperate file so we can load w/o doing
 // async I/O at startup.
 const protoBuilder = loadProto(`
@@ -158,35 +155,15 @@ message StatsReport {
 Notes on histograms:
 Frozen HdrHistogram(?), no need to pass zeroes
 */
-
-/*
-Notes on query signatures:
-
-query Foo {
-  user("hello") { n: name }
-    ... Baz
-}
-fragment Bar on User {
-  age
-}
-fragment Baz on User {
-  dob
-}
-=>
-query Foo { user("") { name ...Baz } } fragment Baz on User { age }
---- or (config) ---
-query Foo { user("hello") { name } } fragment Baz on User { age }
-
-cleanup:
-"foo" => ""
-1.24  => 0
-RED   => RED
-*/
 `, null, "reports.proto");
 
 
+// export useful classes for consumers.
+
+export const Timestamp = protoBuilder.build("Timestamp");
+export const Details = protoBuilder.build("Details");
 export const Trace = protoBuilder.build("Trace");
-
+export const ReportHeader = protoBuilder.build("ReportHeader");
 export const TracesReport = protoBuilder.build("TracesReport");
-
 export const StatsReport = protoBuilder.build("StatsReport");
+
