@@ -1,7 +1,7 @@
 import now from 'performance-now';
 import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
-import { reportRequest } from './Report';
+import { reportRequest, reportSchema } from './Report';
 
 
 export const opticsMiddleware = (req, res, next) => {
@@ -92,6 +92,8 @@ export const instrumentSchema = (schema) => {
     return schema;
   }
   schema._opticsInstrumented = true;
+
+  reportSchema(schema);
 
   // add per field instrumentation
   forEachField(schema, (field, typeName, fieldName) => {

@@ -166,4 +166,6 @@ export const Trace = protoBuilder.build("Trace");
 export const ReportHeader = protoBuilder.build("ReportHeader");
 export const TracesReport = protoBuilder.build("TracesReport");
 export const StatsReport = protoBuilder.build("StatsReport");
+export const StatsPerSignature = protoBuilder.build("StatsPerSignature");
+export const StatsPerClientName = protoBuilder.build("StatsPerClientName");
 

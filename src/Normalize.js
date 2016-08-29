@@ -33,3 +33,8 @@ export const normalizeQuery = (info) => {
 
   return fullQuery;
 };
+
+
+export const normalizeVersion = (req) => {
+  return { client_name: 'none', client_version: 'nope' };
+};
