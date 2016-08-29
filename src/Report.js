@@ -1,4 +1,5 @@
 import { printSchema } from 'graphql';
+import request from 'request';
 
 import { normalizeQuery, normalizeVersion } from './Normalize';
 import {
@@ -7,6 +8,10 @@ import {
 } from './Proto';
 
 var os = require('os');
+
+// XXX where to send reports
+const OPTICS_INGRESS_URL = process.env.OPTICS_INGRESS_URL ||
+        'https://nim-test-protobuf.appspot.com/';
 
 // buffer to hold reports while we aggregate them.
 let pendingResults = {};
@@ -77,7 +82,7 @@ const sendReport = () => {
       account: 'apollostack',
       service: 'GitHunt-test',
       hostname: os.hostname(),
-      agent_version: "optics-agent-js 0.0.2",
+      agent_version: "optics-agent-js 0.0.2 xxx",
       runtime_version: "node " + process.version,
       // XXX not actually uname, but what node has easily.
       uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
@@ -112,7 +117,21 @@ const sendReport = () => {
       report.per_signature[query] = c;
     });
 
-    console.log("QQQ", report.encodeJSON());
+    const options = {
+      url: OPTICS_INGRESS_URL,
+      method: 'PUT',
+      headers: {
+        'user-agent': "optics-agent-js 0.0.2 xxx",
+      },
+      body: report.encode().toBuffer()
+    };
+    request(options, (err, res) => {
+      if (err) {
+        console.error('Error trying to report to optics backend:', err.message);
+      }
+    });
+
+    // console.log("QQQ", report.encodeJSON());
 
   } catch (e) {
     console.log("EEE", e);
