@@ -13,20 +13,16 @@ var os = require('os');
 const OPTICS_INGRESS_URL = process.env.OPTICS_INGRESS_URL ||
         'https://nim-test-protobuf.appspot.com/';
 
-// buffer to hold reports while we aggregate them.
-let pendingResults = {};
-let pendingSchema = null;
-let reportStartTime = +new Date();
-let reportTimer = setInterval(() => sendReport(), 10*1000);
 
 export const reportRequest = (req) => {
   const context = req._opticsContext;
-  if (!context || !context.info) {
+  if (!context || !context.info || !context.agent) {
     // XXX not a graphql query?
     console.log("XXX not a query");
     return;
   }
   const info = context.info;
+  const agent = context.agent;
 
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
@@ -34,7 +30,7 @@ export const reportRequest = (req) => {
     const query = normalizeQuery(info);
     const { client_name, client_version } = normalizeVersion(req);
 
-    let res = pendingResults;
+    let res = agent.pendingResults;
     if (!res[query]) {
       res[query] = {};
     }
@@ -58,22 +54,10 @@ export const reportRequest = (req) => {
 
 };
 
-export const reportSchema = (schema) => {
-  if (pendingSchema) {
-    console.log("XXX reportSchema called more than once.");
-  }
-  pendingSchema = printSchema(schema);
-};
-
-const sendReport = () => {
+export const sendReport = (agent, reportData, startTime, endTime) => {
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
   try {
-    // take the data and reset.
-    const reportData = pendingResults;
-    const oldStartTime = reportStartTime;
-    pendingResults = {};
-    reportStartTime = +new Date();
 
     // build report
     const report = new StatsReport();
@@ -89,13 +73,12 @@ const sendReport = () => {
     });
 
     report.start_time = new Timestamp(
-      { seconds: (oldStartTime / 1000), nanos: (oldStartTime % 1000)*1e6 });
+      { seconds: (endTime / 1000), nanos: (endTime % 1000)*1e6 });
     report.end_time = new Timestamp(
-      { seconds: (reportStartTime / 1000), nanos: (reportStartTime % 1000)*1e6 });
+      { seconds: (startTime / 1000), nanos: (startTime % 1000)*1e6 });
 
-    // XXX what if the have different schemas for different requests?!
-    // XXX also, should we send the whole schema each time
-    report.schema = pendingSchema;
+    // XXX need to format this differently (instrospection query)
+    report.schema = printSchema(agent.schema);
 
     report.per_signature = {};
     Object.keys(reportData).forEach((query) => {

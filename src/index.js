@@ -1,9 +1,2 @@
-export {
-  opticsMiddleware,
-  instrumentSchema,
-  newContext,
-} from './Instrument'
-
-export {
-  setupOptics,
-} from './Config'
+import Agent from './Agent';
+export default Agent;

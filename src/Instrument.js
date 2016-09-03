@@ -93,8 +93,6 @@ export const instrumentSchema = (schema) => {
   }
   schema._opticsInstrumented = true;
 
-  reportSchema(schema);
-
   // add per field instrumentation
   forEachField(schema, (field, typeName, fieldName) => {
     if (field.resolve) {
@@ -115,12 +113,13 @@ export const instrumentSchema = (schema) => {
   return schema;
 };
 
-export const newContext = (req) => {
+export const newContext = (req, agent) => {
   let context = req._opticsContext;
   if (!context) {
     // XXX this should only happen if the middleware isn't installed right.
     context = {};
   };
   context.resolverCalls = [];
+  context.agent = agent;
   return context;
 };
