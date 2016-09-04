@@ -1,9 +1,10 @@
 import { loadProto } from 'protobufjs';
 
-// copied and pasted instead of a seperate file so we can load w/o doing
-// async I/O at startup.
+// copied and pasted from https://github.com/apollostack/optics-agent
+// instead of using a seperate file so we can load w/o doing async I/O
+// at startup. we should turn this into a compile time step.
 const protoBuilder = loadProto(`
-// reports 0.2.20160823.0
+// reports 0.4.2016.8.31
 
 syntax = "proto3";
 
@@ -47,7 +48,7 @@ message Trace {
 	Timestamp start_time = 4 [(optional)=false];
 
 	// Parsed, filtered for op (incl. fragments), reserialized
-	string signature = 5 [(optional)=false];
+	string signature = 5 [(optional)=false]; // see docs/signatures.md
 
 	message Details {
 		map<string, bytes> variables = 1 [(optional)=true];
@@ -91,14 +92,14 @@ message Trace {
 			uint32 index = 2;
 		}
 
-		string type = 3 [(optional)=false];
+		string type = 3 [(optional)=true];
 		string alias = 4 [(optional)=true];
 
 		// relative to the trace's start_time, in ns
 		uint64 start_time = 8 [(optional)=false];
 		uint64 end_time = 9 [(optional)=true];
 
-		Error error = 11 [(optional)=true];
+		repeated Error errors = 11 [(optional)=true];
 		repeated Node children = 12 [(optional)=false];
 	}
 
@@ -117,7 +118,7 @@ message ReportHeader {
 
 	// eg "optics-agent-js 0.1.0"
 	string agent_version = 6 [(optional)=false];
-	// eg "prod-4279-20160804T065423Z-5-g3cf0aa8" (taken from \`git describe --tags\`)
+	// eg "prod-4279-20160804T065423Z-5-g3cf0aa8" (taken from 'git describe --tags')
 	string service_version = 7 [(optional)=true];
 	// eg "node v4.6.0"
 	string runtime_version = 8 [(optional)=true];
@@ -126,12 +127,21 @@ message ReportHeader {
 }
 
 message StatsPerClientName {
-	repeated uint64 latency_counts = 1 [(optional)=false];
-	repeated uint64 error_counts = 2 [(optional)=false];
-	map<string, uint64> count_per_version_version = 3 [(optional)=false];
+	repeated uint64 latency_counts = 1 [(optional)=true]; // Duration histogram; see docs/histograms.md
+	repeated uint64 error_counts = 2 [(optional)=true]; // Error histogram; see docs/histograms.md
+	map<string, uint64> count_per_version = 3 [(optional)=false];
 }
+
+message FieldStat {
+	string type = 1 [(optional)=false]; // eg "User"
+	string name = 2 [(optional)=false]; // eg "name"
+	string returnType = 3 [(optional)=false]; // eg "String!"
+	repeated uint64 latency_counts = 8 [(optional)=true]; // Duration histogram; see docs/histograms.md
+}
+
 message StatsPerSignature {
 	map<string, StatsPerClientName> per_client_name = 1 [(optional)=false];
+	repeated FieldStat stats = 2 [(optional)=false];
 }
 
 // Top-level message type for the server-side traces endpoint
@@ -150,22 +160,20 @@ message StatsReport {
 
 	map<string, StatsPerSignature> per_signature = 12 [(optional)=false];
 }
-
-/*
-Notes on histograms:
-Frozen HdrHistogram(?), no need to pass zeroes
-*/
 `, null, "reports.proto");
 
 
-// export useful classes for consumers.
+// export top level classes for consumers.
 
+export const Id128 = protoBuilder.build("Id128");
 export const Timestamp = protoBuilder.build("Timestamp");
-export const Details = protoBuilder.build("Details");
+export const Error = protoBuilder.build("Error");
+
 export const Trace = protoBuilder.build("Trace");
 export const ReportHeader = protoBuilder.build("ReportHeader");
+export const StatsPerClientName = protoBuilder.build("StatsPerClientName");
+export const FieldStat = protoBuilder.build("FieldStat");
+export const StatsPerSignature = protoBuilder.build("StatsPerSignature");
+
 export const TracesReport = protoBuilder.build("TracesReport");
 export const StatsReport = protoBuilder.build("StatsReport");
-export const StatsPerSignature = protoBuilder.build("StatsPerSignature");
-export const StatsPerClientName = protoBuilder.build("StatsPerClientName");
-
