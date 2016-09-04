@@ -1,7 +1,10 @@
-import { printSchema } from 'graphql';
 import request from 'request';
 
-import { normalizeQuery, normalizeVersion } from './Normalize';
+import {
+  normalizeQuery, normalizeVersion,
+  newLatencyBuckets, addLatencyToBuckets
+} from './Normalize';
+
 import {
   Timestamp, Trace, ReportHeader, TracesReport, StatsReport,
   StatsPerSignature, StatsPerClientName
@@ -30,23 +33,39 @@ export const reportRequest = (req) => {
     const query = normalizeQuery(info);
     const { client_name, client_version } = normalizeVersion(req);
 
-    let res = agent.pendingResults;
+    const res = agent.pendingResults;
+
     if (!res[query]) {
-      res[query] = {};
+      res[query] = {
+        perClient: {},
+        perField: {}
+      };
     }
-    res = res[query];
-    if (!res[client_name]) {
-      res[client_name] = {};
-    }
-    res = res[client_name];
-    if (!res[client_version]) {
-      res[client_version] = {count: 0};
-    }
-    res[client_version].count += 1;
+    const perClient = res[query].perClient;
+    const perField = res[query].perClient;
 
-    // XXX latency and error counts
+    if (!perClient[client_name]) {
+      perClient[client_name] = {
+        latencyBuckets: newLatencyBuckets(),
+        perVersion: {}
+      };
+    }
+    const nanos = (context.durationHrTime[0]*1e9 +
+                   context.durationHrTime[1]);
+    addLatencyToBuckets(perClient[client_name].latencyBuckets,
+                        nanos);
 
-    // XXX report trace
+    const perVersion = perClient[client_name].perVersion;
+    if (!perVersion[client_version]) {
+      perVersion[client_version] = 0;
+    }
+    perVersion[client_version] += 1;
+
+    // XXX error counts
+
+    // XXX field stats
+
+    // XXX record for traces
 
   } catch (e) {
     console.log("EEE", e);
@@ -76,24 +95,24 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
       { seconds: (endTime / 1000), nanos: (endTime % 1000)*1e6 });
     report.end_time = new Timestamp(
       { seconds: (startTime / 1000), nanos: (startTime % 1000)*1e6 });
+    // XXX report hr duration??
 
-    // XXX need to format this differently (instrospection query)
-    report.schema = printSchema(agent.schema);
+    report.schema = agent.prettySchema;
 
     report.per_signature = {};
     Object.keys(reportData).forEach((query) => {
-      const clients = reportData[query];
+      const clients = reportData[query].perClient;
       const c = new StatsPerSignature;
       c.per_client_name = {};
       Object.keys(clients).forEach((client) => {
-        const versions = clients[client];
+        const versions = clients[client].perVersion;
         const v = new StatsPerClientName;
-        // XXX typo in name field?
-        v.count_per_version_version = {};
+        v.latency_counts = clients[client].latencyBuckets;
+        v.count_per_version = {};
         Object.keys(versions).forEach((version) => {
           const r = versions[version];
           // XXX latency_counts, error_counts
-          v.count_per_version_version[version] = r.count;
+          v.count_per_version[version] = r;
         });
         c.per_client_name[client] = v;
       });
@@ -114,7 +133,7 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
       }
     });
 
-    // console.log("QQQ", report.encodeJSON());
+    console.log("QQQ", report.encodeJSON());
 
   } catch (e) {
     console.log("EEE", e);

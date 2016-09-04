@@ -1,3 +1,5 @@
+import { printSchema } from 'graphql/utilities';
+
 import {
   opticsMiddleware,
   instrumentSchema,
@@ -22,6 +24,7 @@ export default class Agent {
 
   instrumentSchema(schema) {
     this.schema = instrumentSchema(schema, this);
+    this.prettySchema = printSchema(schema);
     return this.schema;
   }
 
