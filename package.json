@@ -1,6 +1,6 @@
 {
   "name": "optics-agent",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Apollo Optics Agent for GraphQL-js",
   "main": "dist/index.js",
   "scripts": {
