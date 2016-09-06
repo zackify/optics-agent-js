@@ -133,7 +133,7 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
       }
     });
 
-    console.log("QQQ", report.encodeJSON());
+    // console.log("QQQ", report.encodeJSON());
 
   } catch (e) {
     console.log("EEE", e);
