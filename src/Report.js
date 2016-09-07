@@ -4,8 +4,7 @@ import { TypeInfo } from 'graphql/utilities';
 
 
 import {
-  normalizeQuery, normalizeVersion, printType,
-  newLatencyBuckets, addLatencyToBuckets
+  printType, newLatencyBuckets, addLatencyToBuckets
 } from './Normalize';
 
 import {
@@ -15,13 +14,9 @@ import {
 
 var os = require('os');
 
-// XXX where to send reports
-const OPTICS_INGRESS_URL = process.env.OPTICS_INGRESS_URL ||
-        'https://nim-test-protobuf.appspot.com/';
-
 export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
   const agent = context.agent;
-  const query = normalizeQuery(info);
+  const query = agent.normalizeQuery(info);
   const res = agent.pendingResults;
 
   const fObj = res[query] && res[query].perField &&
@@ -47,8 +42,8 @@ export const reportRequestStart = (context) => {
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
   try {
-    const query = normalizeQuery(info);
-    const { client_name, client_version } = normalizeVersion(req);
+    const query = agent.normalizeQuery(info);
+    const { client_name, client_version } = agent.normalizeVersion(req);
 
     const res = agent.pendingResults;
 
@@ -104,8 +99,8 @@ export const reportRequestEnd = (req) => {
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
   try {
-    const query = normalizeQuery(info);
-    const { client_name, client_version } = normalizeVersion(req);
+    const query = agent.normalizeQuery(info);
+    const { client_name, client_version } = agent.normalizeVersion(req);
     const res = agent.pendingResults;
 
     const clientObj = (
@@ -144,9 +139,9 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
     // build report
     const report = new StatsReport();
     report.header = new ReportHeader({
-      auth_token: 'XXX',
-      account: 'apollostack',
-      service: 'GitHunt-test',
+      auth_token: agent.apiKey || '<not configured>',
+      account: 'XXX',
+      service: 'XXX',
       hostname: os.hostname(),
       agent_version: "optics-agent-js 0.0.2 xxx",
       runtime_version: "node " + process.version,
@@ -201,7 +196,7 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
     });
 
     const options = {
-      url: OPTICS_INGRESS_URL,
+      url: agent.endpointUrl,
       method: 'PUT',
       headers: {
         'user-agent': "optics-agent-js 0.0.2 xxx",
@@ -214,7 +209,9 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
       }
     });
 
-    // console.log("QQQ", report.encodeJSON());
+    if (agent.printReports) {
+      console.log("OPTICS", report.encodeJSON());
+    }
 
   } catch (e) {
     console.log("EEE", e);

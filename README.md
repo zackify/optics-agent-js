@@ -11,24 +11,68 @@ npm install optics-agent --save
 
 ## Configure
 
-Next, setup the agent in your main server file
+Next, setup the agent in your main server file.
+
+### Import the package
 
 ```
-var OA = require('optics-agent');
+var OpticsAgent = require('optics-agent');
 ```
 
-Configure:
+or in ES6
+
 ```
-OA.setupOptics({appKey: '1234'});
+import OpticsAgent from 'optics-agent';
 ```
+
+### Create the agent
+
+```
+var agent = new OpticsAgent({ configOptions })
+```
+
+configOptions include:
+
+* apiKey: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environtment variable, but can be overriden here.
+
+* debugFn: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
+
+* normalizeVersion: Function(req)->[String,String]. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
+
+* normalizeQuery: Function(info)->String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
+
+* endpointUrl: String. Where to send the reports. Defaults to the production Optics endpoint, or `OPTICS_ENDPOINT_URL` if it is set. You shouldn't need to set this unless you are debugging.
+
+* reportIntervalMs: Int. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
+
+* printReports: Boolean: Print reports as the are sent. This may be useful for debugging. Defaults to false.
+
+
+### Instrument your schema
+
+```
+agent.instrumentSchema(executableSchema);
+```
+
+### Add the middleware
 
 Setup middleware:
 ```
-app.use(OA.opticsMiddleware);
+app.use(agent.middleware());
 ```
 
-In your GraphQL context:
+Do this right before your GraphQL server for best results.
+
+### Add a context to each graphql request
+
+In the `context` object sent to graphql, add a new field:
 ```
-{ opticsContext: OA.newContext(req) }
+{ opticsContext: agent.context(req) }
 ```
+
+### Example
+
+Here's an example diff:
+
+https://github.com/apollostack/GitHunt-API/compare/nim/optics-agent
 
