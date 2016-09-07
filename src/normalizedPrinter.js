@@ -12,7 +12,7 @@
 
 
 
-import { visit } from './visitor';
+import { visit } from 'graphql/language';
 
 /**
  * Converts an AST into a string, using one set of reasonable
@@ -77,9 +77,9 @@ const printDocASTReducer = {
 
   // Value
 
-  IntValue: ({ value }) => value,
-  FloatValue: ({ value }) => value,
-  StringValue: ({ value }) => JSON.stringify(value),
+  IntValue: ({ value }) => 0, // OPTICS
+  FloatValue: ({ value }) => 0, // OPTICS
+  StringValue: ({ value }) => '""', // OPTICS
   BooleanValue: ({ value }) => JSON.stringify(value),
   EnumValue: ({ value }) => value,
   ListValue: ({ values }) => '[' + join(values, ', ') + ']',

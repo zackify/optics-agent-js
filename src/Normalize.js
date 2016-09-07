@@ -1,5 +1,6 @@
-import { print } from 'graphql/language';
 import { GraphQLList, GraphQLNonNull }  from 'graphql/type';
+
+import { print } from './normalizedPrinter';
 
 
 /*

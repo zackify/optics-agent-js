@@ -22,7 +22,9 @@ export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
   const fObj = res[query] && res[query].perField &&
           res[query].perField[typeName][fieldName];
   if (!fObj) {
-    console.log("CC1", typeName, fieldName);
+    // XXX this can happen when a report is sent out from under us.
+    // drop resolver tracing on the floor.
+    // console.log("CC1", typeName, fieldName);
     return;
   }
   addLatencyToBuckets(fObj.latencyBuckets, nanos);
@@ -103,9 +105,20 @@ export const reportRequestEnd = (req) => {
     const { client_name, client_version } = agent.normalizeVersion(req);
     const res = agent.pendingResults;
 
-    const clientObj = (
+    let clientObj = (
       res[query] && res[query].perClient && res[query].perClient[client_name]);
+
+    // This happens when the report was sent while the query was
+    // running. If that happens, just re-init the structure by
+    // re-reporting.
+    reportRequestStart(context);
+
+    // should be fixed now.
+    clientObj = (
+      res[query] && res[query].perClient && res[query].perClient[client_name]);
+
     if (!clientObj) {
+      // huh?
       console.log("CC2", query);
       return;
     }
