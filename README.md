@@ -31,23 +31,23 @@ import OpticsAgent from 'optics-agent';
 var agent = new OpticsAgent({ configOptions })
 ```
 
-configOptions include:
+Options include:
 
-* apiKey: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environtment variable, but can be overriden here.
+* `apiKey`: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environtment variable, but can be overriden here.
 
-* debugFn: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
+* `reportTraces`: Boolean: Send detailed traces along with usage reports. Defaults to true.
 
-* normalizeVersion: Function(req)->[String,String]. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
+* `normalizeVersion`: Function(req)->[String,String]. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
 
-* normalizeQuery: Function(info)->String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
+* `normalizeQuery`: Function(info)->String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
 
-* endpointUrl: String. Where to send the reports. Defaults to the production Optics endpoint, or `OPTICS_ENDPOINT_URL` if it is set. You shouldn't need to set this unless you are debugging.
+* `debugFn`: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
 
-* reportIntervalMs: Int. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
+* `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or `OPTICS_ENDPOINT_URL` if it is set. You shouldn't need to set this unless you are debugging.
 
-* printReports: Boolean: Print reports as the are sent. This may be useful for debugging. Defaults to false.
+* `reportIntervalMs`: Int. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
 
-* reportTraces: Boolean: Send detailed traces along with usage reports. Defaults to true.
+* `printReports`: Boolean: Print reports as the are sent. This may be useful for debugging. Defaults to false.
 
 
 ### Instrument your schema
