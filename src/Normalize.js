@@ -1,4 +1,5 @@
 import { print } from 'graphql/language';
+import { GraphQLList, GraphQLNonNull }  from 'graphql/type';
 
 
 /*
@@ -35,10 +36,20 @@ export const normalizeQuery = (info) => {
 };
 
 
+export const printType = (type) => {
+  if (type instanceof GraphQLList) {
+    return '[' + printType(type.ofType) + ']';
+  } else if (type instanceof GraphQLNonNull) {
+    return printType(type.ofType) + '!';
+  }
+  return type.name;
+};
+
+
+
 export const normalizeVersion = (req) => {
   return { client_name: 'none', client_version: 'nope' };
 };
-
 
 
 export const latencyBucket = (nanos) => {

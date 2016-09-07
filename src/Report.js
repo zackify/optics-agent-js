@@ -1,13 +1,16 @@
 import request from 'request';
+import { visit, visitWithTypeInfo } from 'graphql/language';
+import { TypeInfo } from 'graphql/utilities';
+
 
 import {
-  normalizeQuery, normalizeVersion,
+  normalizeQuery, normalizeVersion, printType,
   newLatencyBuckets, addLatencyToBuckets
 } from './Normalize';
 
 import {
   Timestamp, Trace, ReportHeader, TracesReport, StatsReport,
-  StatsPerSignature, StatsPerClientName
+  StatsPerSignature, StatsPerClientName, FieldStat
 } from './Proto';
 
 var os = require('os');
@@ -16,9 +19,23 @@ var os = require('os');
 const OPTICS_INGRESS_URL = process.env.OPTICS_INGRESS_URL ||
         'https://nim-test-protobuf.appspot.com/';
 
+export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
+  const agent = context.agent;
+  const query = normalizeQuery(info);
+  const res = agent.pendingResults;
 
-export const reportRequest = (req) => {
-  const context = req._opticsContext;
+  const fObj = res[query] && res[query].perField &&
+          res[query].perField[typeName][fieldName];
+  if (!fObj) {
+    console.log("CC1", typeName, fieldName);
+    return;
+  }
+  addLatencyToBuckets(fObj.latencyBuckets, nanos);
+};
+
+
+export const reportRequestStart = (context) => {
+  const req = context.req;
   if (!context || !context.info || !context.agent) {
     // XXX not a graphql query?
     console.log("XXX not a query");
@@ -41,8 +58,27 @@ export const reportRequest = (req) => {
         perField: {}
       };
     }
+
+    // fill out per field if we haven't already for this query shape.
+    const perField = res[query].perField;
+    if (Object.keys(perField).length == 0) {
+      const typeInfo = new TypeInfo(agent.schema);
+      visit(info.operation, visitWithTypeInfo(typeInfo, {
+        Field: () => {
+          const parentType = typeInfo.getParentType().name;
+          if (!perField[parentType]) {
+            perField[parentType] = {};
+          }
+          const fieldName = typeInfo.getFieldDef().name;
+          perField[parentType][fieldName] = {
+            returnType: printType(typeInfo.getType()),
+            latencyBuckets: newLatencyBuckets()
+          };
+        }
+      }));
+    }
+
     const perClient = res[query].perClient;
-    const perField = res[query].perClient;
 
     if (!perClient[client_name]) {
       perClient[client_name] = {
@@ -50,22 +86,49 @@ export const reportRequest = (req) => {
         perVersion: {}
       };
     }
+  } catch (e) {
+    console.log("EEE", e);
+  }
+};
+
+export const reportRequestEnd = (req) => {
+  const context = req._opticsContext;
+  if (!context || !context.info || !context.agent) {
+    // XXX not a graphql query?
+    console.log("XXX not a query");
+    return;
+  }
+  const info = context.info;
+  const agent = context.agent;
+
+  // exceptions from here are caught and ignored somewhere.
+  // catch manually for debugging.
+  try {
+    const query = normalizeQuery(info);
+    const { client_name, client_version } = normalizeVersion(req);
+    const res = agent.pendingResults;
+
+    const clientObj = (
+      res[query] && res[query].perClient && res[query].perClient[client_name]);
+    if (!clientObj) {
+      console.log("CC2", query);
+      return;
+    }
+
     const nanos = (context.durationHrTime[0]*1e9 +
                    context.durationHrTime[1]);
-    addLatencyToBuckets(perClient[client_name].latencyBuckets,
-                        nanos);
 
-    const perVersion = perClient[client_name].perVersion;
+    // XXX check if first trace for this bucket. if so, send trace.
+
+    addLatencyToBuckets(clientObj.latencyBuckets, nanos);
+
+    const perVersion = clientObj.perVersion;
     if (!perVersion[client_version]) {
       perVersion[client_version] = 0;
     }
     perVersion[client_version] += 1;
 
     // XXX error counts
-
-    // XXX field stats
-
-    // XXX record for traces
 
   } catch (e) {
     console.log("EEE", e);
@@ -101,9 +164,11 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
 
     report.per_signature = {};
     Object.keys(reportData).forEach((query) => {
-      const clients = reportData[query].perClient;
       const c = new StatsPerSignature;
+
+      // add client stats
       c.per_client_name = {};
+      const clients = reportData[query].perClient;
       Object.keys(clients).forEach((client) => {
         const versions = clients[client].perVersion;
         const v = new StatsPerClientName;
@@ -116,6 +181,22 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
         });
         c.per_client_name[client] = v;
       });
+
+      // add field stats
+      c.stats = [];
+      const fields = reportData[query].perField;
+      Object.keys(fields).forEach((parentType) => {
+        Object.keys(fields[parentType]).forEach((fieldName) => {
+          const fs = new FieldStat;
+          const fObj = fields[parentType][fieldName];
+          fs.type = parentType;
+          fs.name = fieldName;
+          fs.returnType = fObj.returnType;
+          fs.latency_counts = fObj.latencyBuckets;
+          c.stats.push(fs);
+        });
+      });
+
       report.per_signature[query] = c;
     });
 

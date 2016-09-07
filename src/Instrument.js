@@ -1,6 +1,8 @@
 import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
-import { reportRequest, reportSchema } from './Report';
+import { reportRequestStart, reportRequestEnd, reportResolver, reportSchema } from './Report';
+
+import { addLatencyToBuckets } from './Normalize';
 
 
 export const opticsMiddleware = (req, res, next) => {
@@ -17,13 +19,11 @@ export const opticsMiddleware = (req, res, next) => {
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
-    setImmediate(reportRequest(req));
+    setImmediate(reportRequestEnd(req));
   };
 
   return next();
 };
-
-
 
 export const decorateField = (fn, info) => {
   const decoratedResolver = (p, a, ctx, i) => {
@@ -34,20 +34,28 @@ export const decorateField = (fn, info) => {
     const opticsContext = ctx.opticsContext;
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
 
-    let result;
+    const finishRun = () => {
+      const duration =
+              process.hrtime(resolverReport.startHrTime);
+      resolverReport.durationHrTime = duration;
 
+      const nanos = (duration[0]*1e9 + duration[1]);
+      reportResolver(opticsContext, i, info, nanos);
+    };
+
+    let result;
     try {
       result = fn(p, a, ctx, i);
-      resolverReport.durationHrTime =
-        process.hrtime(resolverReport.startHrTime);
+      finishRun();
     } catch (e) {
       // console.log('yeah, it errored directly');
-      resolverReport.durationHrTime =
-        process.hrtime(resolverReport.startHrTime);
+      finishRun();
       resolverReport.error = true;
       throw e;
     }
 
+    // XXX array of promises
+    // null, undefined, string, number, array[thing], promise[thing]
     try {
       if (result === null) {
         resolverReport.resultNull = true;
@@ -59,14 +67,12 @@ export const decorateField = (fn, info) => {
       }
       if (typeof result.then === 'function') {
         result.then((res) => {
-          resolverReport.durationHrTime =
-            process.hrtime(resolverReport.startHrTime);
+          finishRun();
           return res;
         })
           .catch((err) => {
             // console.log('whoa, it threw an error!');
-            resolverReport.durationHrTime =
-              process.hrtime(resolverReport.startHrTime);
+            finishRun();
             resolverReport.error = true;
             throw err;
           });
@@ -109,7 +115,10 @@ export const instrumentSchema = (schema) => {
   // add per query instrumentation
   addSchemaLevelResolveFunction(schema, (root, args, ctx, info) => {
     const opticsContext = ctx.opticsContext;
-    if (opticsContext) { opticsContext.info = info; }
+    if (opticsContext) {
+      opticsContext.info = info;
+      reportRequestStart(opticsContext);
+    }
     return root;
   });
 
@@ -124,5 +133,6 @@ export const newContext = (req, agent) => {
   };
   context.resolverCalls = [];
   context.agent = agent;
+  context.req = req;
   return context;
 };
