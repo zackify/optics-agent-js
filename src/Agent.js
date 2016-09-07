@@ -17,7 +17,7 @@ import {
 export default class Agent {
   constructor({
     apiKey, debugFn, normalizeVersion, normalizeQuery,
-    endpointUrl, reportIntervalMs, printReports
+    endpointUrl, reportIntervalMs, printReports, reportTraces
   }) {
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
     this.debugFn = debugFn || console.log; // XXX actually use me
@@ -27,6 +27,7 @@ export default class Agent {
                         'https://nim-test-protobuf.appspot.com/');
     this.reportIntervalMs = reportIntervalMs || 60*1000;
     this.printReports = !!printReports;
+    this.reportTraces = reportTraces !== false;
 
     this.pendingResults = {};
     this.pendingSchema = null;

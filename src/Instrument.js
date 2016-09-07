@@ -27,19 +27,20 @@ export const opticsMiddleware = (req, res, next) => {
 
 export const decorateField = (fn, info) => {
   const decoratedResolver = (p, a, ctx, i) => {
+    const opticsContext = ctx.opticsContext;
     const resolverReport = {
-      startHrTime: process.hrtime(),
+      startOffset: process.hrtime(opticsContext.startHrTime),
       info
     };
-    const opticsContext = ctx.opticsContext;
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
 
     const finishRun = () => {
-      const duration =
-              process.hrtime(resolverReport.startHrTime);
-      resolverReport.durationHrTime = duration;
+      resolverReport.endOffset = process.hrtime(opticsContext.startHrTime);
+      const nanos = (resolverReport.endOffset[0]*1e9 +
+                     resolverReport.endOffset[1]) - (
+                       resolverReport.startOffset[0]*1e9 +
+                         resolverReport.startOffset[1]);
 
-      const nanos = (duration[0]*1e9 + duration[1]);
       reportResolver(opticsContext, i, info, nanos);
     };
 

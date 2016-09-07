@@ -4,7 +4,7 @@ import { TypeInfo } from 'graphql/utilities';
 
 
 import {
-  printType, newLatencyBuckets, addLatencyToBuckets
+  printType, latencyBucket, newLatencyBuckets, addLatencyToBuckets
 } from './Normalize';
 
 import {
@@ -126,7 +126,14 @@ export const reportRequestEnd = (req) => {
     const nanos = (context.durationHrTime[0]*1e9 +
                    context.durationHrTime[1]);
 
-    // XXX check if first trace for this bucket. if so, send trace.
+    // check to see if we've sent a trace for this bucket yet this
+    // report period. if we haven't, send one now.
+    const bucket = latencyBucket(nanos);
+    const numSoFar = clientObj.latencyBuckets[bucket];
+    if (0 == numSoFar && agent.reportTraces) {
+      // report it later in its own function on the event loop.
+      setImmediate(() => reportTrace(agent, context));
+    }
 
     addLatencyToBuckets(clientObj.latencyBuckets, nanos);
 
@@ -143,6 +150,79 @@ export const reportRequestEnd = (req) => {
   }
 
 };
+
+
+export const reportTrace = (agent, context) => {
+  // exceptions from here are caught and ignored somewhere.
+  // catch manually for debugging.
+  try {
+    const report = new TracesReport();
+    report.header = new ReportHeader({
+      auth_token: agent.apiKey || '<not configured>',
+      account: 'XXX',
+      service: 'XXX',
+      hostname: os.hostname(),
+      agent_version: "optics-agent-js 0.0.2 xxx",
+      runtime_version: "node " + process.version,
+      // XXX not actually uname, but what node has easily.
+      uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
+    });
+    const req = context.req;
+    const info = context.info;
+
+    const trace = new Trace();
+    // XXX make up a server_id
+    trace.start_time = report.start_time = new Timestamp(
+      { seconds: (context.startWallTime / 1000),
+        nanos: (context.startWallTime % 1000)*1e6 });
+
+    trace.signature = agent.normalizeQuery(info);
+
+    const { client_name, client_version } = agent.normalizeVersion(req);
+    trace.client_name = client_name;
+    trace.client_version = client_version;
+
+    trace.client_addr = req.connection.remoteAddress; // XXX x-forwarded-for?
+    trace.http = new Trace.HTTPInfo();
+    trace.http.host = req.headers.host;
+    trace.http.path = req.url;
+
+    trace.execute = new Trace.Node();
+    trace.execute.children = context.resolverCalls.map((rep) => {
+      const n = new Trace.Node();
+      n.field_name = rep.info.typeName + "." + rep.info.fieldName;
+      n.start_time = rep.startOffset[0]*1e9 + rep.startOffset[1];
+      n.end_time = rep.endOffset[0]*1e9 + rep.endOffset[1];
+      // XXX
+      return n;
+    });
+
+    // no batching for now.
+    report.traces = [trace];
+
+    const options = {
+      url: agent.endpointUrl,
+      method: 'PUT',
+      headers: {
+        'user-agent': "optics-agent-js 0.0.2 xxx",
+      },
+      body: report.encode().toBuffer()
+    };
+    request(options, (err, res) => {
+      if (err) {
+        console.error('Error trying to report to optics backend:', err.message);
+      }
+    });
+
+    if (agent.printReports) {
+      console.log("OPTICS TRACE", report.encodeJSON());
+    }
+
+  } catch (e) {
+    console.log("EEE", e);
+  }
+};
+
 
 export const sendReport = (agent, reportData, startTime, endTime) => {
   // exceptions from here are caught and ignored somewhere.
@@ -223,7 +303,7 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
     });
 
     if (agent.printReports) {
-      console.log("OPTICS", report.encodeJSON());
+      console.log("OPTICS REPORT", report.encodeJSON());
     }
 
   } catch (e) {

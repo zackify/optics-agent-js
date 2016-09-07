@@ -47,6 +47,8 @@ configOptions include:
 
 * printReports: Boolean: Print reports as the are sent. This may be useful for debugging. Defaults to false.
 
+* reportTraces: Boolean: Send detailed traces along with usage reports. Defaults to true.
+
 
 ### Instrument your schema
 
