@@ -19,7 +19,7 @@ export const opticsMiddleware = (req, res, next) => {
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
-    setImmediate(reportRequestEnd(req));
+    setImmediate(() => { reportRequestEnd(req); });
   };
 
   return next();
