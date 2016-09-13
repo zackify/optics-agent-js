@@ -9,7 +9,8 @@ import { TypeInfo } from 'graphql/utilities';
 
 
 import {
-  printType, latencyBucket, newLatencyBuckets, addLatencyToBuckets
+  printType,
+  latencyBucket, newLatencyBuckets, addLatencyToBuckets, trimLatencyBuckets
 } from './Normalize';
 
 import {
@@ -207,11 +208,10 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       Object.keys(clients).forEach((client) => {
         const versions = clients[client].perVersion;
         const v = new StatsPerClientName;
-        v.latency_counts = clients[client].latencyBuckets;
+        v.latency_counts = trimLatencyBuckets(clients[client].latencyBuckets);
         v.count_per_version = {};
         Object.keys(versions).forEach((version) => {
           const r = versions[version];
-          // XXX latency_counts, error_counts
           v.count_per_version[version] = r;
         });
         c.per_client_name[client] = v;
@@ -231,7 +231,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
           const fObj = fields[parentType][fieldName];
           fs.name = fieldName;
           fs.returnType = fObj.returnType;
-          fs.latency_counts = fObj.latencyBuckets;
+          fs.latency_counts = trimLatencyBuckets(fObj.latencyBuckets);
         });
       });
 

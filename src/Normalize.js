@@ -89,3 +89,11 @@ export const newLatencyBuckets = () => [
 export const addLatencyToBuckets = (buckets, nanos) => {
   buckets[latencyBucket(nanos)] += 1;
 };
+
+export const trimLatencyBuckets = (buckets) => {
+  let max = buckets.length;
+  while (max > 0 && buckets[max - 1] == 0) {
+    max -= 1;
+  }
+  return buckets.slice(0, max);
+};
