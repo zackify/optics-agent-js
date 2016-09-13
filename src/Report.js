@@ -1,6 +1,10 @@
 import request from 'request';
 import { graphql } from 'graphql';
 import { visit, visitWithTypeInfo } from 'graphql/language';
+import {
+  getNamedType,
+  GraphQLObjectType,
+} from 'graphql/type';
 import { TypeInfo } from 'graphql/utilities';
 
 
@@ -9,8 +13,10 @@ import {
 } from './Normalize';
 
 import {
-  Timestamp, Trace, ReportHeader, TracesReport, StatsReport, SchemaReport,
-  StatsPerSignature, StatsPerClientName, FieldStat
+  Timestamp, Trace, ReportHeader,
+  TracesReport, StatsReport, SchemaReport,
+  StatsPerSignature, StatsPerClientName,
+  FieldStat, TypeStat, Field, Type
 } from './Proto';
 
 var os = require('os');
@@ -188,6 +194,9 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       { seconds: (startTime / 1000), nanos: (startTime % 1000)*1e6 });
     report.realtime_duration = durationHr[0]*1e9 + durationHr[1];
 
+    report.types = getTypesFromSchema(agent.schema);
+
+    // fill out per signature
     report.per_signature = {};
     Object.keys(reportData).forEach((query) => {
       const c = new StatsPerSignature;
@@ -407,11 +416,9 @@ export const sendSchema = (agent, schema) => {
         uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
       });
       report.introspection_result = schemaString;
-
-      // XXX fill out types.
+      report.types = getTypesFromSchema(schema);
 
       sendMessage(agent, '/api/ss/schema', report);
-
     }
   );
   // ).catch(() => {}); // XXX!
@@ -424,7 +431,7 @@ export const sendMessage = (agent, path, message) => {
     url: agent.endpointUrl + path,
     method: 'POST',
     headers: {
-      'user-agent': "optics-agent-js 0.0.2 xxx",
+      'user-agent': "optics-agent-js",
       'x-api-key': (agent.apiKey || '<not configured>')
     },
     body: message.encode().toBuffer()
@@ -438,4 +445,33 @@ export const sendMessage = (agent, path, message) => {
   if (agent.printReports) {
     console.log("OPTICS", path, message.encodeJSON());
   }
+};
+
+//////////////////// Helpers ////////////////////
+
+export const getTypesFromSchema = (schema) => {
+  const ret = [];
+  const typeMap = schema.getTypeMap();
+  const typeNames = Object.keys(typeMap);
+  typeNames.forEach((typeName) => {
+    const type = typeMap[typeName];
+    if ( getNamedType(type).name.startsWith('__') ||
+         ! (type instanceof GraphQLObjectType )) {
+           return;
+         }
+    const t = new Type();
+    t.name = typeName;
+    t.fields = [];
+    const fields = type.getFields();
+    Object.keys(fields).forEach((fieldName) => {
+      const field = fields[fieldName];
+      const f = new Field();
+      f.name = fieldName;
+      f.returnType = printType(field.type);
+      t.fields.push(f);
+    });
+    // XXX fields
+    ret.push(t);
+  });
+  return ret;
 };
