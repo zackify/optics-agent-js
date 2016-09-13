@@ -186,9 +186,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       { seconds: (endTime / 1000), nanos: (endTime % 1000)*1e6 });
     report.end_time = new Timestamp(
       { seconds: (startTime / 1000), nanos: (startTime % 1000)*1e6 });
-    // XXX report hr duration??
-
-    report.schema = agent.prettySchema;
+    report.realtime_duration = durationHr[0]*1e9 + durationHr[1];
 
     report.per_signature = {};
     Object.keys(reportData).forEach((query) => {

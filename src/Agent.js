@@ -31,6 +31,7 @@ export default class Agent {
     this.pendingResults = {};
     this.pendingSchema = null;
     this.reportStartTime = +new Date();
+    this.reportStartHrTime = process.hrtime();
     this.reportTimer = setInterval(() => { this.sendReport() },
                                    this.reportIntervalMs);
 
@@ -57,9 +58,11 @@ export default class Agent {
   sendReport() {
     const reportData = this.pendingResults;
     const oldStartTime = this.reportStartTime;
-    this.pendingResults = {};
+    const durationHr = process.hrtime(this.reportStartHrTime);
+    this.reportStartHrTime = process.hrtime();
     this.reportStartTime = +new Date();
+    this.pendingResults = {};
 
-    sendReport(this, reportData, oldStartTime, this.reportStartTime);
+    sendReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
   }
 };
