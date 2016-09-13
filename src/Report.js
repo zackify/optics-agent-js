@@ -14,6 +14,9 @@ import {
 
 var os = require('os');
 
+
+//////////////////// Incoming Data ////////////////////
+
 export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
   const agent = context.agent;
   const query = agent.normalizeQuery(info);
@@ -158,9 +161,6 @@ export const reportTrace = (agent, context) => {
   try {
     const report = new TracesReport();
     report.header = new ReportHeader({
-      auth_token: agent.apiKey || '<not configured>',
-      account: 'XXX',
-      service: 'XXX',
       hostname: os.hostname(),
       agent_version: "optics-agent-js 0.0.2 xxx",
       runtime_version: "node " + process.version,
@@ -200,28 +200,16 @@ export const reportTrace = (agent, context) => {
     // no batching for now.
     report.traces = [trace];
 
-    const options = {
-      url: agent.endpointUrl,
-      method: 'PUT',
-      headers: {
-        'user-agent': "optics-agent-js 0.0.2 xxx",
-      },
-      body: report.encode().toBuffer()
-    };
-    request(options, (err, res) => {
-      if (err) {
-        console.error('Error trying to report to optics backend:', err.message);
-      }
-    });
-
-    if (agent.printReports) {
-      console.log("OPTICS TRACE", report.encodeJSON());
-    }
+    sendMessage(agent, '/api/ss/traces', report);
 
   } catch (e) {
     console.log("EEE", e);
   }
 };
+
+
+
+//////////////////// Marshalling Data ////////////////////
 
 
 export const sendReport = (agent, reportData, startTime, endTime) => {
@@ -232,9 +220,6 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
     // build report
     const report = new StatsReport();
     report.header = new ReportHeader({
-      auth_token: agent.apiKey || '<not configured>',
-      account: 'XXX',
-      service: 'XXX',
       hostname: os.hostname(),
       agent_version: "optics-agent-js 0.0.2 xxx",
       runtime_version: "node " + process.version,
@@ -288,25 +273,31 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
       report.per_signature[query] = c;
     });
 
-    const options = {
-      url: agent.endpointUrl,
-      method: 'PUT',
-      headers: {
-        'user-agent': "optics-agent-js 0.0.2 xxx",
-      },
-      body: report.encode().toBuffer()
-    };
-    request(options, (err, res) => {
-      if (err) {
-        console.error('Error trying to report to optics backend:', err.message);
-      }
-    });
-
-    if (agent.printReports) {
-      console.log("OPTICS REPORT", report.encodeJSON());
-    }
-
+    sendMessage(agent, '/api/ss/stats', report);
   } catch (e) {
     console.log("EEE", e);
+  }
+};
+
+//////////////////// Sending Data ////////////////////
+
+export const sendMessage = (agent, path, message) => {
+  const options = {
+    url: agent.endpointUrl + path,
+    method: 'POST',
+    headers: {
+      'user-agent': "optics-agent-js 0.0.2 xxx",
+      'x-api-key': (agent.apiKey || '<not configured>')
+    },
+    body: message.encode().toBuffer()
+  };
+  request(options, (err, res) => {
+    if (err) {
+      console.error('Error trying to report to optics backend:', err.message);
+    }
+  });
+
+  if (agent.printReports) {
+    console.log("OPTICS", path, message.encodeJSON());
   }
 };
