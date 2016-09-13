@@ -218,17 +218,20 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       });
 
       // add field stats
-      c.stats = [];
+      c.per_types = [];
       const fields = reportData[query].perField;
       Object.keys(fields).forEach((parentType) => {
+        const ts = new TypeStat;
+        c.per_types.push(ts);
+        ts.name = parentType;
+        ts.fields = [];
         Object.keys(fields[parentType]).forEach((fieldName) => {
           const fs = new FieldStat;
+          ts.fields.push(fs);
           const fObj = fields[parentType][fieldName];
-          fs.type = parentType;
           fs.name = fieldName;
           fs.returnType = fObj.returnType;
           fs.latency_counts = fObj.latencyBuckets;
-          c.stats.push(fs);
         });
       });
 
