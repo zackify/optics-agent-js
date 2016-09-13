@@ -4,13 +4,34 @@ import { loadProto } from 'protobufjs';
 // instead of using a seperate file so we can load w/o doing async I/O
 // at startup. we should turn this into a compile time step.
 const protoBuilder = loadProto(`
-// reports 0.4.2016.8.31
+// reports 0.4.2016.9.9
+// from https://github.com/apollostack/optics-agent
+//
+// Copyright (c) 2016 Apollo
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in all
+// copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 
 syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
-option java_package = "com.apollostack.optics.proto";
+option java_package = "apollo.optics.proto";
 option optimize_for = SPEED;
 
 extend google.protobuf.FieldOptions {
@@ -133,15 +154,19 @@ message StatsPerClientName {
 }
 
 message FieldStat {
-	string type = 1 [(optional)=false]; // eg "User"
-	string name = 2 [(optional)=false]; // eg "name"
-	string returnType = 3 [(optional)=false]; // eg "String!"
+	string name = 2 [(optional)=false]; // eg "email" for User.email:String!
+	string returnType = 3 [(optional)=false]; // eg "String!" for User.email:String!
 	repeated uint64 latency_counts = 8 [(optional)=true]; // Duration histogram; see docs/histograms.md
+}
+
+message TypeStat {
+	string name = 1 [(optional)=false]; // eg "User" for User.email:String!
+	repeated FieldStat fields = 2 [(optional)=true];
 }
 
 message StatsPerSignature {
 	map<string, StatsPerClientName> per_client_name = 1 [(optional)=false];
-	repeated FieldStat stats = 2 [(optional)=false];
+	repeated TypeStat per_types = 2 [(optional)=false];
 }
 
 // Top-level message type for the server-side traces endpoint
@@ -150,15 +175,32 @@ message TracesReport {
 	repeated Trace traces = 2 [(optional)=false];
 }
 
+message Field {
+	string name = 2 [(optional)=false]; // eg "email" for User.email:String!
+	string returnType = 3 [(optional)=false]; // eg "String!" for User.email:String!
+}
+
+message Type {
+	string name = 1 [(optional)=false]; // eg "User" for User.email:String!
+	repeated Field fields = 2 [(optional)=true];
+}
+
 // Top-level message type for the server-side stats endpoint
 message StatsReport {
 	ReportHeader header = 1 [(optional)=false];
-	string schema = 2 [(optional)=false];
 
 	Timestamp start_time = 8 [(optional)=false];
 	Timestamp end_time = 9 [(optional)=false];
+	uint64 realtime_duration = 10 [(optional)=true];
 
 	map<string, StatsPerSignature> per_signature = 12 [(optional)=false];
+	repeated Type types = 13 [(optional)=true];
+}
+
+message SchemaReport {
+	ReportHeader header = 1 [(optional)=false];
+	string introspection_result = 8 [(optional)=true];
+	repeated Type types = 9 [(optional)=true];
 }
 `, null, "reports.proto");
 
@@ -173,7 +215,13 @@ export const Trace = protoBuilder.build("Trace");
 export const ReportHeader = protoBuilder.build("ReportHeader");
 export const StatsPerClientName = protoBuilder.build("StatsPerClientName");
 export const FieldStat = protoBuilder.build("FieldStat");
+export const TypeStat = protoBuilder.build("TypeStat");
 export const StatsPerSignature = protoBuilder.build("StatsPerSignature");
 
 export const TracesReport = protoBuilder.build("TracesReport");
+
+export const Field = protoBuilder.build("Field");
+export const Type = protoBuilder.build("Type");
+
 export const StatsReport = protoBuilder.build("StatsReport");
+export const SchemaReport = protoBuilder.build("SchemaReport");

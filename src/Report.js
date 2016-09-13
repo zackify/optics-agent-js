@@ -1,4 +1,5 @@
 import request from 'request';
+import { graphql } from 'graphql';
 import { visit, visitWithTypeInfo } from 'graphql/language';
 import { TypeInfo } from 'graphql/utilities';
 
@@ -8,7 +9,7 @@ import {
 } from './Normalize';
 
 import {
-  Timestamp, Trace, ReportHeader, TracesReport, StatsReport,
+  Timestamp, Trace, ReportHeader, TracesReport, StatsReport, SchemaReport,
   StatsPerSignature, StatsPerClientName, FieldStat
 } from './Proto';
 
@@ -154,69 +155,23 @@ export const reportRequestEnd = (req) => {
 
 };
 
-
 export const reportTrace = (agent, context) => {
-  // exceptions from here are caught and ignored somewhere.
-  // catch manually for debugging.
-  try {
-    const report = new TracesReport();
-    report.header = new ReportHeader({
-      hostname: os.hostname(),
-      agent_version: "optics-agent-js 0.0.2 xxx",
-      runtime_version: "node " + process.version,
-      // XXX not actually uname, but what node has easily.
-      uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
-    });
-    const req = context.req;
-    const info = context.info;
-
-    const trace = new Trace();
-    // XXX make up a server_id
-    trace.start_time = report.start_time = new Timestamp(
-      { seconds: (context.startWallTime / 1000),
-        nanos: (context.startWallTime % 1000)*1e6 });
-
-    trace.signature = agent.normalizeQuery(info);
-
-    const { client_name, client_version } = agent.normalizeVersion(req);
-    trace.client_name = client_name;
-    trace.client_version = client_version;
-
-    trace.client_addr = req.connection.remoteAddress; // XXX x-forwarded-for?
-    trace.http = new Trace.HTTPInfo();
-    trace.http.host = req.headers.host;
-    trace.http.path = req.url;
-
-    trace.execute = new Trace.Node();
-    trace.execute.children = context.resolverCalls.map((rep) => {
-      const n = new Trace.Node();
-      n.field_name = rep.info.typeName + "." + rep.info.fieldName;
-      n.start_time = rep.startOffset[0]*1e9 + rep.startOffset[1];
-      n.end_time = rep.endOffset[0]*1e9 + rep.endOffset[1];
-      // XXX
-      return n;
-    });
-
-    // no batching for now.
-    report.traces = [trace];
-
-    sendMessage(agent, '/api/ss/traces', report);
-
-  } catch (e) {
-    console.log("EEE", e);
-  }
+  // for now just send every trace immediately
+  sendTrace(agent, context);
 };
 
+export const reportSchema = (agent, schema) => {
+  // send once on startup
+  sendSchema(agent, schema);
+};
 
 
 //////////////////// Marshalling Data ////////////////////
 
-
-export const sendReport = (agent, reportData, startTime, endTime) => {
+export const sendReport = (agent, reportData, startTime, endTime, durationHr) => {
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
   try {
-
     // build report
     const report = new StatsReport();
     report.header = new ReportHeader({
@@ -277,6 +232,191 @@ export const sendReport = (agent, reportData, startTime, endTime) => {
   } catch (e) {
     console.log("EEE", e);
   }
+};
+
+
+export const sendTrace = (agent, context) => {
+  // exceptions from here are caught and ignored somewhere.
+  // catch manually for debugging.
+  try {
+    const report = new TracesReport();
+    report.header = new ReportHeader({
+      hostname: os.hostname(),
+      agent_version: "optics-agent-js 0.0.2 xxx",
+      runtime_version: "node " + process.version,
+      // XXX not actually uname, but what node has easily.
+      uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
+    });
+    const req = context.req;
+    const info = context.info;
+
+    const trace = new Trace();
+    // XXX make up a server_id
+    trace.start_time = report.start_time = new Timestamp(
+      { seconds: (context.startWallTime / 1000),
+        nanos: (context.startWallTime % 1000)*1e6 });
+
+    trace.signature = agent.normalizeQuery(info);
+
+    const { client_name, client_version } = agent.normalizeVersion(req);
+    trace.client_name = client_name;
+    trace.client_version = client_version;
+
+    trace.client_addr = req.connection.remoteAddress; // XXX x-forwarded-for?
+    trace.http = new Trace.HTTPInfo();
+    trace.http.host = req.headers.host;
+    trace.http.path = req.url;
+
+    trace.execute = new Trace.Node();
+    trace.execute.children = context.resolverCalls.map((rep) => {
+      const n = new Trace.Node();
+      n.field_name = rep.info.typeName + "." + rep.info.fieldName;
+      n.start_time = rep.startOffset[0]*1e9 + rep.startOffset[1];
+      n.end_time = rep.endOffset[0]*1e9 + rep.endOffset[1];
+      // XXX
+      return n;
+    });
+
+    // no batching for now.
+    report.traces = [trace];
+
+    sendMessage(agent, '/api/ss/traces', report);
+
+  } catch (e) {
+    console.log("EEE", e);
+  }
+};
+
+export const sendSchema = (agent, schema) => {
+
+  // modified introspection query that doesn't return something
+  // quite so giant.
+  const q = `
+  query ShorterIntrospectionQuery {
+    __schema {
+      queryType { name }
+      mutationType { name }
+      subscriptionType { name }
+      types {
+        ...FullType
+      }
+      directives {
+        name
+        # description
+        locations
+        args {
+          ...InputValue
+        }
+      }
+    }
+  }
+
+  fragment FullType on __Type {
+    kind
+    name
+    # description
+    fields(includeDeprecated: true) {
+      name
+      # description
+      args {
+        ...InputValue
+      }
+      type {
+        ...TypeRef
+      }
+      isDeprecated
+      # deprecationReason
+    }
+    inputFields {
+      ...InputValue
+    }
+    interfaces {
+      ...TypeRef
+    }
+    enumValues(includeDeprecated: true) {
+      name
+      # description
+      isDeprecated
+      # deprecationReason
+    }
+    possibleTypes {
+      ...TypeRef
+    }
+  }
+
+  fragment InputValue on __InputValue {
+    name
+    # description
+    type { ...TypeRef }
+    # defaultValue
+  }
+
+  fragment TypeRef on __Type {
+    kind
+    name
+    ofType {
+      kind
+      name
+      ofType {
+        kind
+        name
+        ofType {
+          kind
+          name
+          ofType {
+            kind
+            name
+            ofType {
+              kind
+              name
+              ofType {
+                kind
+                name
+                ofType {
+                  kind
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+`;
+  graphql(schema, q).then(
+    (res) => {
+      if (!res || !res.data || !res.data.__schema) {
+        // XXX huh?
+        console.log("Bad schema result");
+        return;
+      }
+      const resultSchema = res.data.__schema;
+      // remove the schema schema from the schema.
+      resultSchema.types = resultSchema.types.filter(
+        (x) => x && (x.kind != 'OBJECT' || x.name != "__Schema")
+      );
+
+      const schemaString = JSON.stringify(resultSchema);
+
+      const report = new SchemaReport();
+      report.header = new ReportHeader({
+        hostname: os.hostname(),
+        agent_version: "optics-agent-js 0.0.2 xxx",
+        runtime_version: "node " + process.version,
+        // XXX not actually uname, but what node has easily.
+        uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
+      });
+      report.introspection_result = schemaString;
+
+      // XXX fill out types.
+
+      sendMessage(agent, '/api/ss/schema', report);
+
+    }
+  );
+  // ).catch(() => {}); // XXX!
 };
 
 //////////////////// Sending Data ////////////////////
