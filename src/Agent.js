@@ -51,6 +51,28 @@ export default class Agent {
     return opticsMiddleware;
   }
 
+  registerHapiExtensions (server) {
+    server.ext([
+      {
+        type: 'onPreHandler',
+        method: (request, reply) => {
+          const req = request.raw.req;
+          const res = {};
+          opticsMiddleware(req, res, () => {});
+          req._opticsRes = res;
+        }
+      }, {
+        type: 'onPostHandler',
+        method: (request, reply) => {
+          const req = request.raw.req;
+          const res = req._opticsRes;
+          if (res && res.end) {
+            res.end();
+          }
+        }
+      }]);
+  }
+
   context(req) {
     return newContext(req, this);
   }
