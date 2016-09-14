@@ -16,7 +16,7 @@ Next, setup the agent in your main server file.
 ### Import the package
 
 ```
-var OpticsAgent = require('optics-agent');
+var OpticsAgent = require('optics-agent').OpticsAgent;
 ```
 
 or in ES6
@@ -59,17 +59,29 @@ agent.instrumentSchema(executableSchema);
 ### Add the middleware
 
 Setup middleware:
+
+#### Express
 ```
 app.use(agent.middleware());
 ```
-
 Do this right before your GraphQL server for best results.
+
+#### HAPI
+```
+agent.registerHapiExtensions(server)
+```
+
 
 ### Add a context to each graphql request
 
 In the `context` object sent to graphql, add a new field:
 ```
 { opticsContext: agent.context(req) }
+```
+
+If you are using HAPI you must explicitly use the raw request object:
+```
+{ opticsContext: agent.context(request.raw.req) }
 ```
 
 ### Example
