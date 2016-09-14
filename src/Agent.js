@@ -60,6 +60,7 @@ export default class Agent {
           const res = {};
           opticsMiddleware(req, res, () => {});
           req._opticsRes = res;
+          return reply.continue();
         }
       }, {
         type: 'onPostHandler',
@@ -69,6 +70,7 @@ export default class Agent {
           if (res && res.end) {
             res.end();
           }
+          return reply.continue();
         }
       }]);
   }

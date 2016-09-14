@@ -15,7 +15,7 @@ export const opticsMiddleware = (req, res, next) => {
 
   res.end = function () {
     context.durationHrTime = process.hrtime(context.startHrTime);
-    context.oldResEnd.apply(res, arguments);
+    context.oldResEnd && context.oldResEnd.apply(res, arguments);
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
