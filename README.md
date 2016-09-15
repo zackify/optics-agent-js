@@ -8,7 +8,7 @@ Here are the steps to enable Optics Agent in your app. See below for details on 
  * Create the agent: `const agent = new OpticsAgent;`
  * Instrument your schema: `agent.instrumentSchema(executableSchema);`
  * Add the middleware: `expressServer.use(agent.middleware());`
- * Add to your GraphQL context object: `context.opticsContext: agent.context(req);`
+ * Add to your GraphQL context object: `context.opticsContext = agent.context(req);`
 
 ## Install
 
