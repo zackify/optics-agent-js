@@ -1,6 +1,15 @@
 # optics-agent-js
 Optics Agent for GraphQL-js
 
+Here are the steps to enable Optics Agent in your app. See below for details on each step:
+* Install the NPM package in your app: `npm install optics-agent --save`
+* In your main.js file:
+ * Import the package: `import OpticsAgent from 'optics-agent'`;
+ * Create the agent: `const agent = new OpticsAgent;`
+ * Instrument your schema: `agent.instrumentSchema(executableSchema);`
+ * Add the middleware: `expressServer.use(agent.middleware());`
+ * Add to your GraphQL context object: `context.opticsContext: agent.context(req);`
+
 ## Install
 
 First, install the package
@@ -68,13 +77,13 @@ Setup middleware:
 
 #### Express
 ```
-app.use(agent.middleware());
+expressServer.use(agent.middleware());
 ```
 Do this right before your GraphQL server for best results.
 
 #### HAPI
 ```
-agent.registerHapiExtensions(server)
+agent.registerHapiExtensions(hapiServer)
 ```
 
 
@@ -96,3 +105,49 @@ Here's an example diff:
 
 https://github.com/apollostack/GitHunt-API/compare/nim/optics-agent
 
+```diff
+diff --git a/api/index.js b/api/index.js
+index 43ee586..d848ac0 100644
+--- a/api/index.js
++++ b/api/index.js
+@@ -19,6 +19,11 @@ import { subscriptionManager } from './subscriptions';
+ 
+ import schema from './schema';
+ 
++import OpticsAgent from 'optics-agent';
++const agent = new OpticsAgent;
++agent.instrumentSchema(schema);
++
++
+ let PORT = 3010;
+ if (process.env.PORT) {
+   PORT = parseInt(process.env.PORT, 10) + 100;
+@@ -33,6 +38,7 @@ app.use(bodyParser.json());
+ 
+ setUpGitHubLogin(app);
+ 
++app.use('/graphql', agent.middleware());
+ app.use('/graphql', apolloExpress((req) => {
+   // Get the query, the same way express-graphql does it
+   // https://github.com/graphql/express-graphql/blob/3fa6e68582d6d933d37fa9e841da5d2aa39261cd/src/index.js#L257
+@@ -70,6 +76,7 @@ app.use('/graphql', apolloExpress((req) => {
+       Users: new Users({ connector: gitHubConnector }),
+       Entries: new Entries(),
+       Comments: new Comments(),
++      opticsContext: agent.context(req),
+     },
+   };
+ }));
+diff --git a/package.json b/package.json
+index 5c96682..3ad1d8c 100644
+--- a/package.json
++++ b/package.json
+@@ -52,6 +52,7 @@
+     "graphql-tools": "^0.7.0",
+     "knex": "^0.11.3",
+     "lodash": "^4.12.0",
++    "optics-agent": "^0.0.15",
+     "passport": "^0.3.2",
+     "passport-github": "^1.1.0",
+     "request-promise": "^3.0.0",
+```
