@@ -102,8 +102,8 @@ export const reportRequestStart = (context) => {
 export const reportRequestEnd = (req) => {
   const context = req._opticsContext;
   if (!context || !context.info || !context.agent) {
-    // XXX not a graphql query?
-    console.log("XXX not a query");
+    // Happens when we get non-queries.
+    // console.log("XXX not a query");
     return;
   }
   const info = context.info;
