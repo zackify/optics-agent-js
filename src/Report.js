@@ -45,8 +45,8 @@ export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
 export const reportRequestStart = (context) => {
   const req = context.req;
   if (!context || !context.info || !context.agent) {
-    // XXX not a graphql query?
-    console.log("XXX not a query");
+    // Happens when non-graphql queries come through.
+    // console.log("XXX not a query");
     return;
   }
   const info = context.info;
