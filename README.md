@@ -31,6 +31,8 @@ import OpticsAgent from 'optics-agent';
 var agent = new OpticsAgent({ configOptions })
 ```
 
+Normally you do not need to pass any options here -- just set the `OPTICS_API_KEY` environment variable.
+
 Options include:
 
 * `apiKey`: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environtment variable, but can be overriden here.
@@ -52,9 +54,13 @@ Options include:
 
 ### Instrument your schema
 
+Call `instrumentSchema` on the same executable schema object you pass to `graphql-js` to run.
+
 ```
 agent.instrumentSchema(executableSchema);
 ```
+
+You should only call this once per agent. If you have multiple or dynamic schemas, create a separate agent per schema.
 
 ### Add the middleware
 
