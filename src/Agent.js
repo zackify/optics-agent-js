@@ -14,10 +14,11 @@ import {
 } from './Report';
 
 export default class Agent {
-  constructor({
-    apiKey, debugFn, normalizeVersion, normalizeQuery,
-    endpointUrl, reportIntervalMs, printReports, reportTraces
-  }) {
+  constructor(options) {
+    const {
+      apiKey, debugFn, normalizeVersion, normalizeQuery,
+      endpointUrl, reportIntervalMs, printReports, reportTraces
+    } = options || {};
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
     this.debugFn = debugFn || console.log; // XXX actually use me
     this.normalizeVersion = normalizeVersion || defaultNV;
