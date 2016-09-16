@@ -25,6 +25,7 @@ export default class Agent {
     this.normalizeQuery = normalizeQuery || defaultNQ;
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
                         'https://nim-test-protobuf.appspot.com/');
+    this.endpointUrl = this.endpointUrl.replace(/\/$/, "");
     this.reportIntervalMs = reportIntervalMs || 60*1000;
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
