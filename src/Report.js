@@ -439,9 +439,13 @@ export const sendMessage = (agent, path, message) => {
     },
     body: message.encode().toBuffer()
   };
-  request(options, (err, res) => {
+  request(options, (err, res, body) => {
+    // XXX add retry logic
+    // XXX add separate flag for disable printing errors?
     if (err) {
-      console.error('Error trying to report to optics backend:', err.message);
+      console.log('Error trying to report to optics backend:', err.message);
+    } else if (res.statusCode < 200 || res.statusCode > 299) {
+      console.log('Backend error', res.statusCode, body);
     }
   });
 
