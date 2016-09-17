@@ -435,7 +435,7 @@ export const sendMessage = (agent, path, message) => {
     method: 'POST',
     headers: {
       'user-agent': "optics-agent-js",
-      'x-api-key': (agent.apiKey || '<not configured>')
+      'x-api-key': (agent.apiKey || "")
     },
     body: message.encode().toBuffer()
   };
