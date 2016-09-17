@@ -430,13 +430,17 @@ export const sendSchema = (agent, schema) => {
 //////////////////// Sending Data ////////////////////
 
 export const sendMessage = (agent, path, message) => {
+  const headers = {
+      'user-agent': "optics-agent-js"
+  };
+  if (agent.apiKey) {
+    headers['x-api-key'] = agent.apiKey;
+  }
+
   const options = {
     url: agent.endpointUrl + path,
     method: 'POST',
-    headers: {
-      'user-agent': "optics-agent-js",
-      'x-api-key': (agent.apiKey || "")
-    },
+    headers,
     body: message.encode().toBuffer()
   };
   request(options, (err, res, body) => {
