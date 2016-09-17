@@ -24,7 +24,7 @@ export default class Agent {
     this.normalizeVersion = normalizeVersion || defaultNV;
     this.normalizeQuery = normalizeQuery || defaultNQ;
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
-                        'https://optics-report.apollostack.com/');
+                        'https://optics-report.apollodata.com/');
     this.endpointUrl = this.endpointUrl.replace(/\/$/, "");
     this.reportIntervalMs = reportIntervalMs || 60*1000;
     this.printReports = !!printReports;
