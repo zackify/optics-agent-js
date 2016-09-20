@@ -30,7 +30,10 @@ export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
   const query = agent.normalizeQuery(info);
   const res = agent.pendingResults;
 
-  const fObj = res[query] && res[query].perField &&
+  const fObj = res &&
+          res[query] &&
+          res[query].perField &&
+          res[query].perField[typeName] &&
           res[query].perField[typeName][fieldName];
   if (!fObj) {
     // XXX this can happen when a report is sent out from under us.
