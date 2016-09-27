@@ -34,6 +34,8 @@ export const decorateField = (fn, info) => {
     };
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
 
+    // Call this when the resolver and all the promisises it returns
+    // (if any) are complete.
     const finishRun = () => {
       resolverReport.endOffset = process.hrtime(opticsContext.startHrTime);
       const nanos = (resolverReport.endOffset[0]*1e9 +
@@ -47,44 +49,71 @@ export const decorateField = (fn, info) => {
     let result;
     try {
       result = fn(p, a, ctx, i);
-      finishRun();
     } catch (e) {
-      // console.log('yeah, it errored directly');
-      finishRun();
+      // Resolver function threw during execution. Note the error and
+      // re-throw.
       resolverReport.error = true;
+      finishRun();
       throw e;
     }
 
-    // XXX array of promises
-    // null, undefined, string, number, array[thing], promise[thing]
+    // Resolver can return any of: null, undefined, string, number,
+    // array[thing], or promise[thing].
+    // For primatives and arrays of primatives, fire the report immediately.
+    // For promises, fire when the promise returns.
+    // For arrays containing promises, fire when the last promise returns.
+    //
+    // Wrap in try-catch so bugs in optics-agent are less like to break an app.
     try {
       if (result === null) {
         resolverReport.resultNull = true;
-        return result;
       }
-      if (typeof result === 'undefined') {
+      else if (typeof result === 'undefined') {
         resolverReport.resultUndefined = true;
-        return result;
       }
-      if (typeof result.then === 'function') {
+      // single promise
+      else if (typeof result.then === 'function') {
         result.then((res) => {
           finishRun();
           return res;
-        })
-          .catch((err) => {
-            // console.log('whoa, it threw an error!');
+        }).catch((err) => {
+          resolverReport.error = true;
+          finishRun();
+          throw err;
+        });
+        // exit early so we do not hit the default return.
+        return result;
+      }
+      // array
+      else if (Array.isArray(result)) {
+        // collect the promises in the array, if any.
+        let promises = [];
+        result.forEach((value) => {
+          if (value && typeof value.then === 'function') {
+            promises.push(value);
+          }
+        });
+        // if there are promises in the array, fire when the are all done.
+        if (promises.length > 0) {
+          Promise.all(promises).then(() => {
             finishRun();
+          }).catch((err) => {
             resolverReport.error = true;
+            finishRun();
             throw err;
           });
+          // exit early so we do not hit the default return.
+          return result;
+        }
       } else {
-        // console.log('did not return a promise. logging now');
+        // primitive type. do nothing special, just default return.
       }
+
+      // default return for non-promise answers
+      finishRun();
       return result;
     } catch (e) {
-      // XXX this should basically never happen
-      // if it does happen, we want to be able to collect these events.
-      resolverReport.opticsError = true;
+      // safety belt.
       return result;
     }
   };
@@ -111,6 +140,9 @@ export const instrumentSchema = (schema) => {
         { typeName, fieldName }
       );
     }
+    // If we want to record counts for fields without resolvers,
+    // here's where we'd do it. See
+    // https://github.com/apollostack/optics-agent-js/issues/20.
   });
 
   // add per query instrumentation
