@@ -20,6 +20,8 @@ import {
   FieldStat, TypeStat, Field, Type
 } from './Proto';
 
+var VERSION = "optics-agent-js " + require('../package.json').version;
+
 var os = require('os');
 
 
@@ -186,7 +188,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
     const report = new StatsReport();
     report.header = new ReportHeader({
       hostname: os.hostname(),
-      agent_version: "optics-agent-js 0.0.2 xxx",
+      agent_version: VERSION,
       runtime_version: "node " + process.version,
       // XXX not actually uname, but what node has easily.
       uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
@@ -255,7 +257,7 @@ export const sendTrace = (agent, context) => {
     const report = new TracesReport();
     report.header = new ReportHeader({
       hostname: os.hostname(),
-      agent_version: "optics-agent-js 0.0.2 xxx",
+      agent_version: VERSION,
       runtime_version: "node " + process.version,
       // XXX not actually uname, but what node has easily.
       uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
@@ -416,7 +418,7 @@ export const sendSchema = (agent, schema) => {
       const report = new SchemaReport();
       report.header = new ReportHeader({
         hostname: os.hostname(),
-        agent_version: "optics-agent-js 0.0.2 xxx",
+        agent_version: VERSION,
         runtime_version: "node " + process.version,
         // XXX not actually uname, but what node has easily.
         uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
