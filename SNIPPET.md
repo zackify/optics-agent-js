@@ -4,7 +4,7 @@ $ npm install --save optics-agent
 ```
 Instrument your GraphQL Server
 ```js
-const OpticsAgent = require('optics-agent');
+import OpticsAgent from 'optics-agent';
 const agent = new OpticsAgent({ apiKey: '...' });
 agent.instrumentSchema(executableSchema);
 expressServer.use(agent.middleware());
