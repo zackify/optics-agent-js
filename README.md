@@ -48,6 +48,8 @@ Options include:
 
 * `reportTraces`: Boolean: Send detailed traces along with usage reports. Defaults to true.
 
+* `reportVariables`: Boolean: Send the query variables along with traces. Defaults to true.
+
 * `normalizeVersion`: Function(req)->[String,String]. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
 
 * `normalizeQuery`: Function(info)->String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.

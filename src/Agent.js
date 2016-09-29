@@ -26,7 +26,8 @@ export default class Agent {
     // Public options. See README.md for descriptions.
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
-      endpointUrl, reportIntervalMs, printReports, reportTraces
+      endpointUrl, reportIntervalMs, printReports,
+      reportTraces, reportVariables
     } = options || {};
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
     this.debugFn = debugFn || console.log; // XXX actually use me
@@ -38,6 +39,7 @@ export default class Agent {
     this.reportIntervalMs = reportIntervalMs || 60*1000;
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
+    this.reportVariables = reportVariables !== false;
 
 
     // Internal state.

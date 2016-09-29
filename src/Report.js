@@ -5,7 +5,7 @@
 
 import request from 'request';
 import { graphql } from 'graphql';
-import { visit, visitWithTypeInfo } from 'graphql/language';
+import { visit, visitWithTypeInfo, print } from 'graphql/language';
 import {
   getNamedType,
   GraphQLObjectType,
@@ -289,6 +289,20 @@ export const sendTrace = (agent, context) => {
         nanos: (context.startWallTime % 1000)*1e6 });
 
     trace.signature = agent.normalizeQuery(info);
+
+    trace.details = new Trace.Details();
+    const operationStr = print(info.operation);
+    const fragmentsStr = Object.keys(info.fragments).map(k => print(info.fragments[k])).join('\n');
+    trace.details.raw_query = `${operationStr}\n${fragmentsStr}`;
+    if (info.operation.name) {
+      trace.details.operation_name = print(info.operation.name);
+    }
+    if (agent.reportVariables) {
+      trace.details.variables = {};
+      for (let k of Object.keys(info.variableValues)) {
+        trace.details.variables[k] = JSON.stringify(info.variableValues[k]);
+      }
+    }
 
     const { client_name, client_version } = agent.normalizeVersion(req);
     trace.client_name = client_name;
