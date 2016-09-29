@@ -1,3 +1,8 @@
+Install via npm
+```
+$ npm install --save optics-agent
+```
+Instrument your GraphQL Server
 ```js
 const OpticsAgent = require('optics-agent');
 const agent = new OpticsAgent({
