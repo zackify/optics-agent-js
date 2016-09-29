@@ -1,8 +1,13 @@
+// This file contains the protobuf description for the reports sent to
+// the server. It exports JavaScript classes for each top-level type
+// in the proto file.
+
 import { loadProto } from 'protobufjs';
 
-// copied and pasted from https://github.com/apollostack/optics-agent
+// Copied and pasted from https://github.com/apollostack/optics-agent
 // instead of using a seperate file so we can load w/o doing async I/O
-// at startup. we should turn this into a compile time step.
+// at startup. This could be done with a babel plugin at compile time
+// instead.
 const protoBuilder = loadProto(`
 // reports 0.4.2016.9.9
 // from https://github.com/apollostack/optics-agent
@@ -205,7 +210,7 @@ message SchemaReport {
 `, null, "reports.proto");
 
 
-// export top level classes for consumers.
+// export top level types
 
 export const Id128 = protoBuilder.build("Id128");
 export const Timestamp = protoBuilder.build("Timestamp");

@@ -1,31 +1,15 @@
+// This file contains helper functions to format or normalize data.
+
 import { GraphQLList, GraphQLNonNull }  from 'graphql/type';
 
 import { print } from './normalizedPrinter';
 
 
-/*
-Notes on query signatures:
+////////// GraphQL //////////
 
-query Foo {
-  user("hello") { n: name }
-    ... Baz
-}
-fragment Bar on User {
-  age
-}
-fragment Baz on User {
-  dob
-}
-=>
-query Foo { user("") { name ...Baz } } fragment Baz on User { age }
---- or (config) ---
-query Foo { user("hello") { name } } fragment Baz on User { age }
-
-cleanup:
-"foo" => ""
-1.24  => 0
-RED   => RED
-*/
+// Take a graphql query object and output the "query shape". See
+// https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
+// for details.
 export const normalizeQuery = (info) => {
   // XXX implement
 
@@ -37,6 +21,7 @@ export const normalizeQuery = (info) => {
 };
 
 
+// Turn a graphql type into a user-friendly string. eg 'String' or '[Person!]'
 export const printType = (type) => {
   if (type instanceof GraphQLList) {
     return '[' + printType(type.ofType) + ']';
@@ -47,12 +32,21 @@ export const printType = (type) => {
 };
 
 
+////////// Client Type //////////
 
+// Takes a Node HTTP Request object (http.IncomingMessage) and returns
+// an object with fields `client_name` and `client_version`.
 export const normalizeVersion = (req) => {
+  // XXX implement
+  // https://github.com/apollostack/optics-agent-js/issues/1
   return { client_name: 'none', client_version: 'nope' };
 };
 
 
+////////// Latency Histograms //////////
+
+// Takes a duration in nanoseconds and returns a integer between 0 and
+// 255 (inclusive) to be used as an array offset in a list of buckets.
 export const latencyBucket = (nanos) => {
   const micros = nanos / 1000;
 
@@ -66,7 +60,8 @@ export const latencyBucket = (nanos) => {
   return Math.ceil(bucket);
 };
 
-// XXX ugly. but prob easy for compiler to optimize at least.
+// Return 256 zeros. A little ugly, but probably easy for compiler to
+// optimize at least.
 export const newLatencyBuckets = () => [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -86,10 +81,17 @@ export const newLatencyBuckets = () => [
   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 ];
 
+// Takes a bucket list returned by `newLatencyBuckets` and a duration
+// in nanoseconds and adds 1 to the bucket corresponding to the
+// duration.
 export const addLatencyToBuckets = (buckets, nanos) => {
   buckets[latencyBucket(nanos)] += 1;
 };
 
+
+// Returns a copy of the latency bucket list suitable for sending to
+// the server. Currently this is just trimming trailing zeros but it
+// could later be a more compact encoding.
 export const trimLatencyBuckets = (buckets) => {
   let max = buckets.length;
   while (max > 0 && buckets[max - 1] == 0) {

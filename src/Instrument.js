@@ -1,8 +1,29 @@
+// This file contains the functions that interact with graphql-js to
+// get the data for us to report.
+
+
 import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
 import { reportRequestStart, reportRequestEnd, reportResolver, reportSchema } from './Report';
 
 import { addLatencyToBuckets } from './Normalize';
+
+
+////////// Request Wrapping //////////
+
+// Here we wrap HTTP requests coming in to the web server.
+
+// On request start:
+// 1) note the request start time
+// 2) create a per-request place to put state
+
+// On request end:
+// 3) note the request stop time
+// 4) send the collected data off to Report.js for processing
+
+// This should be the only code that interacts with the web
+// server. Supporting new web servers besides Express and HAPI should
+// be contained here.
 
 
 export const opticsMiddleware = (req, res, next) => {
@@ -25,27 +46,45 @@ export const opticsMiddleware = (req, res, next) => {
   return next();
 };
 
+// XXX hapi middleware here
+
+
+////////// Resolver Wrapping //////////
+
+// Here we wrap resolver functions. The wrapped resolver notes start
+// and end times, resolvers that return null/undefined, and
+// errors. Note that a resolver is not considered finished until all
+// promises it returns (if any) have completed.
+
+// This is applied to each resolver in the schema by instrumentSchema
+// below.
+
 export const decorateField = (fn, info) => {
   const decoratedResolver = (p, a, ctx, i) => {
+    // setup context and note start time.
     const opticsContext = ctx.opticsContext;
     const resolverReport = {
       startOffset: process.hrtime(opticsContext.startHrTime),
       info
     };
+    // save the report object for when we want to sent query traces.
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
 
     // Call this when the resolver and all the promisises it returns
     // (if any) are complete.
     const finishRun = () => {
+      // note end time.
       resolverReport.endOffset = process.hrtime(opticsContext.startHrTime);
       const nanos = (resolverReport.endOffset[0]*1e9 +
                      resolverReport.endOffset[1]) - (
                        resolverReport.startOffset[0]*1e9 +
                          resolverReport.startOffset[1]);
 
+      // report our results over to Report.js for field stats.
       reportResolver(opticsContext, i, info, nanos);
     };
 
+    // Actually run the resolver.
     let result;
     try {
       result = fn(p, a, ctx, i);
@@ -57,6 +96,8 @@ export const decorateField = (fn, info) => {
       throw e;
     }
 
+    // Now process the results of the resolver.
+    //
     // Resolver can return any of: null, undefined, string, number,
     // array[thing], or promise[thing].
     // For primatives and arrays of primatives, fire the report immediately.
@@ -114,6 +155,7 @@ export const decorateField = (fn, info) => {
       return result;
     } catch (e) {
       // safety belt.
+      // XXX log here!
       return result;
     }
   };
@@ -125,6 +167,13 @@ export const decorateField = (fn, info) => {
   return decoratedResolver;
 };
 
+
+////////// Schema Wrapping //////////
+
+// Here we take the executable schema object that graphql-js will
+// execute against and add wrappings. We add both a per-schema
+// wrapping that runs once per query and a per-resolver wrapping that
+// runs around every resolver invocation.
 
 export const instrumentSchema = (schema) => {
   if (schema._opticsInstrumented) {
@@ -158,10 +207,20 @@ export const instrumentSchema = (schema) => {
   return schema;
 };
 
+
+////////// Glue //////////
+
+
+// The graphql `context` object is how we get state into the resolver
+// wrappers. For resolver level information gathering to work, the
+// user must call `newContext` once per query and place the return
+// value in the `opticsContext` field of the graphql-js `context`
+// argument.
 export const newContext = (req, agent) => {
   let context = req._opticsContext;
   if (!context) {
-    // XXX this should only happen if the middleware isn't installed right.
+    // This shouldn't happen. The middleware is supposed to have
+    // already added the _opticsContext field.
     context = {};
   };
   context.resolverCalls = [];

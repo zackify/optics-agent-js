@@ -1,3 +1,8 @@
+// This file contains the functions for processing incoming data from
+// the agent instrumentation and reporting it back to the optics
+// backend.
+
+
 import request from 'request';
 import { graphql } from 'graphql';
 import { visit, visitWithTypeInfo } from 'graphql/language';
@@ -27,6 +32,7 @@ var os = require('os');
 
 //////////////////// Incoming Data ////////////////////
 
+// Called once per resolver function execution.
 export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
   const agent = context.agent;
   const query = agent.normalizeQuery(info);
@@ -38,33 +44,34 @@ export const reportResolver = (context, info, {typeName, fieldName}, nanos) => {
           res[query].perField[typeName] &&
           res[query].perField[typeName][fieldName];
   if (!fObj) {
-    // XXX this can happen when a report is sent out from under us.
-    // drop resolver tracing on the floor.
-    // console.log("CC1", typeName, fieldName);
+    // This happens when a report is sent while a query is running.
+    // When this happens, we do not record the rest of the query's resolvers.
+    // See: https://github.com/apollostack/optics-agent-js/issues/4
     return;
   }
   addLatencyToBuckets(fObj.latencyBuckets, nanos);
 };
 
 
+// Called once per query at query start time by graphql-js.
 export const reportRequestStart = (context) => {
   const req = context.req;
   if (!context || !context.info || !context.agent) {
-    // Happens when non-graphql queries come through.
-    // console.log("XXX not a query");
+    // Happens when non-graphql requests come through.
     return;
   }
   const info = context.info;
   const agent = context.agent;
 
-  // exceptions from here are caught and ignored somewhere.
-  // catch manually for debugging.
   try {
     const query = agent.normalizeQuery(info);
     const { client_name, client_version } = agent.normalizeVersion(req);
 
     const res = agent.pendingResults;
 
+
+    // Initialize per-query state in the report if we're the first of
+    // this query shape to come in this report period.
     if (!res[query]) {
       res[query] = {
         perClient: {},
@@ -73,6 +80,7 @@ export const reportRequestStart = (context) => {
     }
 
     // fill out per field if we haven't already for this query shape.
+    // XXX move into if statement above?
     const perField = res[query].perField;
     if (Object.keys(perField).length == 0) {
       const typeInfo = new TypeInfo(agent.schema);
@@ -91,8 +99,9 @@ export const reportRequestStart = (context) => {
       }));
     }
 
+    // initialize latency buckets if this is the first time we've had
+    // a query from this client type in this period.
     const perClient = res[query].perClient;
-
     if (!perClient[client_name]) {
       perClient[client_name] = {
         latencyBuckets: newLatencyBuckets(),
@@ -100,22 +109,21 @@ export const reportRequestStart = (context) => {
       };
     }
   } catch (e) {
+    // XXX https://github.com/apollostack/optics-agent-js/issues/17
     console.log("EEE", e);
   }
 };
 
+// called once per query by the middleware when the request ends.
 export const reportRequestEnd = (req) => {
   const context = req._opticsContext;
   if (!context || !context.info || !context.agent) {
-    // Happens when we get non-queries.
-    // console.log("XXX not a query");
+    // Happens when non-graphql requests come through.
     return;
   }
   const info = context.info;
   const agent = context.agent;
 
-  // exceptions from here are caught and ignored somewhere.
-  // catch manually for debugging.
   try {
     const query = agent.normalizeQuery(info);
     const { client_name, client_version } = agent.normalizeVersion(req);
@@ -124,6 +132,10 @@ export const reportRequestEnd = (req) => {
     let clientObj = (
       res[query] && res[query].perClient && res[query].perClient[client_name]);
 
+    // XXX XXX are we double counting? straighten out what happens to
+    // queries over the request boundary.
+    // Related: https://github.com/apollostack/optics-agent-js/issues/16
+    //
     // This happens when the report was sent while the query was
     // running. If that happens, just re-init the structure by
     // re-reporting.
@@ -134,7 +146,7 @@ export const reportRequestEnd = (req) => {
       res[query] && res[query].perClient && res[query].perClient[client_name]);
 
     if (!clientObj) {
-      // huh?
+      // XXX huh?
       console.log("CC2", query);
       return;
     }
@@ -159,32 +171,32 @@ export const reportRequestEnd = (req) => {
     }
     perVersion[client_version] += 1;
 
-    // XXX error counts
-
   } catch (e) {
+    // XXX https://github.com/apollostack/optics-agent-js/issues/17
     console.log("EEE", e);
   }
 
 };
 
 export const reportTrace = (agent, context) => {
-  // for now just send every trace immediately
+  // For now just send every trace immediately. We might want to add
+  // batching here at some point.
   sendTrace(agent, context);
 };
 
 export const reportSchema = (agent, schema) => {
-  // send once on startup
+  // Sent once on startup.
+  // XXX move setTimeout logic from agent to here?
   sendSchema(agent, schema);
 };
+
 
 
 //////////////////// Marshalling Data ////////////////////
 
 export const sendReport = (agent, reportData, startTime, endTime, durationHr) => {
-  // exceptions from here are caught and ignored somewhere.
-  // catch manually for debugging.
   try {
-    // build report
+    // build report protobuf object
     const report = new StatsReport();
     report.header = new ReportHeader({
       hostname: os.hostname(),

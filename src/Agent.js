@@ -1,3 +1,10 @@
+// This file contains the Agent class which is the public-facing API
+// for this package.
+//
+// The Agent holds the configuration and all the in-memory state for
+// the server.
+
+
 import {
   normalizeQuery as defaultNQ, normalizeVersion as defaultNV,
 } from './Normalize';
@@ -15,6 +22,7 @@ import {
 
 export default class Agent {
   constructor(options) {
+    // Public options. See README.md for descriptions.
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
       endpointUrl, reportIntervalMs, printReports, reportTraces
@@ -30,10 +38,23 @@ export default class Agent {
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
 
+
+    // Internal state.
+
+    // Data we've collected so far this report period.
     this.pendingResults = {};
+    // XXX unused?!
     this.pendingSchema = null;
+    // The wall clock time for the begining of the current report period.
     this.reportStartTime = +new Date();
+    // The HR clock time for the begining of the current report
+    // period. We record this so we can get an accurate duration for
+    // the report even when the wall clock shifts or drifts.
     this.reportStartHrTime = process.hrtime();
+
+    // Interval to send the reports. Per
+    // https://github.com/apollostack/optics-agent-js/issues/4 we may
+    // want to make this more complicated than just setInterval.
     this.reportTimer = setInterval(() => { this.sendReport() },
                                    this.reportIntervalMs);
 
@@ -54,6 +75,7 @@ export default class Agent {
   }
 
   registerHapiExtensions (server) {
+    // this code should probably move to Instrument.js
     server.ext([
       {
         type: 'onPreHandler',
@@ -82,13 +104,15 @@ export default class Agent {
   }
 
   sendReport() {
+    // copy current report state and reset pending state for the next
+    // report.
     const reportData = this.pendingResults;
     const oldStartTime = this.reportStartTime;
     const durationHr = process.hrtime(this.reportStartHrTime);
     this.reportStartHrTime = process.hrtime();
     this.reportStartTime = +new Date();
     this.pendingResults = {};
-
+    // actually send
     sendReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
   }
 };
