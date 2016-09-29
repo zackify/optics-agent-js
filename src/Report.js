@@ -159,8 +159,7 @@ export const reportRequestEnd = (req) => {
     const bucket = latencyBucket(nanos);
     const numSoFar = clientObj.latencyBuckets[bucket];
     if (0 == numSoFar && agent.reportTraces) {
-      // report it later in its own function on the event loop.
-      setImmediate(() => reportTrace(agent, context));
+      reportTrace(agent, context);
     }
 
     addLatencyToBuckets(clientObj.latencyBuckets, nanos);
@@ -181,13 +180,19 @@ export const reportRequestEnd = (req) => {
 export const reportTrace = (agent, context) => {
   // For now just send every trace immediately. We might want to add
   // batching here at some point.
-  sendTrace(agent, context);
+  //
+  // Send in its own function on the event loop to minimize impact on
+  // response times.
+  setImmediate(() => sendTrace(agent, context));
 };
 
 export const reportSchema = (agent, schema) => {
-  // Sent once on startup.
-  // XXX move setTimeout logic from agent to here?
-  sendSchema(agent, schema);
+  // Sent once on startup. Wait 10 seconds to report the schema. This
+  // does two things:
+  // - help apps start up and serve users faster. don't clog startup
+  //   time with reporting.
+  // - avoid sending a ton of reports from a crash-looping server.
+  setTimeout(() => sendSchema(agent, schema), 10*1000);
 };
 
 

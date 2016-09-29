@@ -10,9 +10,10 @@ import {
 } from './Normalize';
 
 import {
-  opticsMiddleware,
+  instrumentHapiServer,
   instrumentSchema,
   newContext,
+  opticsMiddleware,
 } from './Instrument';
 
 import {
@@ -43,8 +44,6 @@ export default class Agent {
 
     // Data we've collected so far this report period.
     this.pendingResults = {};
-    // XXX unused?!
-    this.pendingSchema = null;
     // The wall clock time for the begining of the current report period.
     this.reportStartTime = +new Date();
     // The HR clock time for the begining of the current report
@@ -62,11 +61,7 @@ export default class Agent {
 
   instrumentSchema(schema) {
     this.schema = instrumentSchema(schema, this);
-    // wait 10 seconds to report the schema. this does 2 things:
-    // - help apps start up and serve users faster. don't clog startup
-    //   time with reporting.
-    // - avoid sending a ton of reports from a crash-looping server.
-    setTimeout(() => reportSchema(this, schema), 10*1000);
+    reportSchema(this, schema);
     return this.schema;
   }
 
@@ -75,28 +70,8 @@ export default class Agent {
   }
 
   registerHapiExtensions (server) {
-    // this code should probably move to Instrument.js
-    server.ext([
-      {
-        type: 'onPreHandler',
-        method: (request, reply) => {
-          const req = request.raw.req;
-          const res = {};
-          opticsMiddleware(req, res, () => {});
-          req._opticsRes = res;
-          return reply.continue();
-        }
-      }, {
-        type: 'onPostHandler',
-        method: (request, reply) => {
-          const req = request.raw.req;
-          const res = req._opticsRes;
-          if (res && res.end) {
-            res.end();
-          }
-          return reply.continue();
-        }
-      }]);
+    // XXX should we rename the public API?
+    instrumentHapiServer(server);
   }
 
   context(req) {
