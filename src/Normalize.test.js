@@ -7,9 +7,13 @@ import { normalizeQuery } from './Normalize';
 const testQueries = [
   [
     'basic test',
-    gql`query Foo {
-      user(name: "hello") {
+    gql`query Foo ($b: Int, $a: Boolean){
+      user(name: "hello", age: 5) {
         ... Bar
+        ... on User {
+          hello
+          bee
+        }
         tz
         aliased: name
       }
@@ -18,13 +22,14 @@ const testQueries = [
       asd
     }
     fragment Bar on User {
-      age
+      age @skip(if: $a)
       ...Nested
     }
     fragment Nested on User {
       blah
     }`,
-    'query Foo{user(name:"") {name tz ...Bar}}fragment Bar on User{age ...Nested}fragment Nested on User{blah}',
+    'query Foo($a:Boolean,$b:Int) {user(age:0, name:"") {... on User {bee hello} ...Bar name tz}}' +
+    ' fragment Bar on User {...Nested age @skip(if:$a)} fragment Nested on User {blah}',
   ],
 ];
 
@@ -45,7 +50,9 @@ describe('normalizeQuery', () => {
         operation,
         fragments,
       };
-      assert.equal(normalizeQuery(fakeInfo), outString, 'normalize');
+      const normalized = normalizeQuery(fakeInfo);
+      // console.log(normalized);
+      assert.equal(normalized, outString, 'normalize');
     });
   });
 });

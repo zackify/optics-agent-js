@@ -28,12 +28,12 @@ const printDocASTReducer = {
 
   // Document
 
-  Document: node => join(node.definitions, '\n\n') + '\n',
+  Document: node => join(node.definitions, ' '),
 
   OperationDefinition(node) {
     const op = node.operation;
     const name = node.name;
-    const varDefs = wrap('(', join(node.variableDefinitions, ', '), ')');
+    const varDefs = wrap('(', join(node.variableDefinitions && node.variableDefinitions.sort(), ','), ')');
     const directives = join(node.directives, ' ');
     const selectionSet = node.selectionSet;
     // Anonymous queries with no directives or variable definitions can use
@@ -44,52 +44,52 @@ const printDocASTReducer = {
   },
 
   VariableDefinition: ({ variable, type, defaultValue }) =>
-    variable + ': ' + type + wrap(' = ', defaultValue),
+    variable + ':' + type + wrap(' = ', defaultValue),
 
-  SelectionSet: ({ selections }) => block(selections),
+  SelectionSet: ({ selections }) => block(selections && selections.sort()),
 
   Field: ({ alias, name, arguments: args, directives, selectionSet }) =>
     join([
-      wrap('', alias, ': ') + name + wrap('(', join(args, ', '), ')'),
+      /* wrap('', alias, ':') + */ name + wrap('(', join(args && args.sort(), ', '), ')'),
       join(directives, ' '),
       selectionSet
     ], ' '),
 
-  Argument: ({ name, value }) => name + ': ' + value,
+  Argument: ({ name, value }) => name + ':' + value,
 
   // Fragments
 
   FragmentSpread: ({ name, directives }) =>
-    '...' + name + wrap(' ', join(directives, ' ')),
+    '...' + name + wrap(' ', join(directives && directives.sort(), ' ')),
 
   InlineFragment: ({ typeCondition, directives, selectionSet }) =>
     join([
       '...',
       wrap('on ', typeCondition),
-      join(directives, ' '),
+      join(directives && directives.sort(), ' '),
       selectionSet
     ], ' '),
 
   FragmentDefinition: ({ name, typeCondition, directives, selectionSet }) =>
     `fragment ${name} on ${typeCondition} ` +
-    wrap('', join(directives, ' '), ' ') +
+    wrap('', join(directives && directives.sort(), ' '), ' ') +
     selectionSet,
 
   // Value
 
-  IntValue: ({ value }) => 0, // OPTICS
-  FloatValue: ({ value }) => 0, // OPTICS
-  StringValue: ({ value }) => '""', // OPTICS
+  IntValue: ({ value }) => 0,
+  FloatValue: ({ value }) => 0,
+  StringValue: ({ value }) => '""',
   BooleanValue: ({ value }) => JSON.stringify(value),
   EnumValue: ({ value }) => value,
-  ListValue: ({ values }) => '[' + join(values, ', ') + ']',
-  ObjectValue: ({ fields }) => '{' + join(fields, ', ') + '}',
+  ListValue: ({ values }) => '[]',
+  ObjectValue: ({ fields }) => '{}',
   ObjectField: ({ name, value }) => name + ': ' + value,
 
   // Directive
 
   Directive: ({ name, arguments: args }) =>
-    '@' + name + wrap('(', join(args, ', '), ')'),
+    '@' + name + wrap('(', join(args && args.sort(), ','), ')'),
 
   // Type
 
@@ -107,7 +107,7 @@ const printDocASTReducer = {
     ], ' '),
 
   OperationTypeDefinition: ({ operation, type }) =>
-    operation + ': ' + type,
+    operation + ':' + type,
 
   ScalarTypeDefinition: ({ name, directives }) =>
     join([ 'scalar', name, join(directives, ' ') ], ' '),
@@ -123,13 +123,13 @@ const printDocASTReducer = {
 
   FieldDefinition: ({ name, arguments: args, type, directives }) =>
     name +
-    wrap('(', join(args, ', '), ')') +
-    ': ' + type +
+    wrap('(', join(args, ','), ')') +
+    ':' + type +
     wrap(' ', join(directives, ' ')),
 
   InputValueDefinition: ({ name, type, defaultValue, directives }) =>
     join([
-      name + ': ' + type,
+      name + ':' + type,
       wrap('= ', defaultValue),
       join(directives, ' ')
     ], ' '),
@@ -190,7 +190,7 @@ function join(maybeArray, separator) {
  */
 function block(array) {
   return array && array.length !== 0 ?
-    indent('{\n' + join(array, '\n')) + '\n}' :
+    indent('{' + join(array, ' ')) + '}' :
     '{}';
 }
 
