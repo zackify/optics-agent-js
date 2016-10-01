@@ -26,6 +26,7 @@
     "babel-plugin-inline-package-json": "^2.0.0",
     "babel-preset-es2015": "^6.13.2",
     "chai": "^3.5.0",
+    "graphql-tag": "^0.1.14",
     "mocha": "^3.0.2"
   },
   "peerDependencies": {

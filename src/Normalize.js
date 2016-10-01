@@ -1,8 +1,10 @@
 // This file contains helper functions to format or normalize data.
 
 import { GraphQLList, GraphQLNonNull }  from 'graphql/type';
+import { separateOperations } from './separateOperations';
 
 import { print } from './normalizedPrinter';
+
 
 
 ////////// GraphQL //////////
@@ -11,13 +13,18 @@ import { print } from './normalizedPrinter';
 // https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
 // for details.
 export const normalizeQuery = (info) => {
-  // XXX implement
+  const doc = {
+    kind: 'Document',
+    definitions: [
+      info.operation,
+      ...Object.keys(info.fragments).map(k => info.fragments[k]),
+    ]
+  };
 
-  const operation = print(info.operation);
-  const fragments = Object.keys(info.fragments).map(k => print(info.fragments[k])).join('\n');
-  const fullQuery = `${operation}\n${fragments}`;
+  const prunedAST = separateOperations(doc)[
+    (info.operation.name && info.operation.name.value) || ''];
 
-  return fullQuery;
+  return print(prunedAST);
 };
 
 
