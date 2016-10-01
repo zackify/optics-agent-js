@@ -7,6 +7,33 @@ import { normalizeQuery } from './Normalize';
 const testQueries = [
   [
     'basic test',
+    gql`{
+      user {
+        name
+      }
+    }`,
+    '{user {name}}',
+  ],
+  [
+    'basic test with query',
+    gql`query {
+      user {
+        name
+      }
+    }`,
+    '{user {name}}',
+  ],
+  [
+    'basic with operation name',
+    gql`query OpName {
+      user {
+        name
+      }
+    }`,
+    'query OpName {user {name}}',
+  ],
+  [
+    'full test',
     gql`query Foo ($b: Int, $a: Boolean){
       user(name: "hello", age: 5) {
         ... Bar

@@ -18,10 +18,11 @@ export const normalizeQuery = (info) => {
     definitions: [
       info.operation,
       ...Object.keys(info.fragments).map(k => info.fragments[k]),
-    ],
-  }
+    ]
+  };
 
-  const prunedAST = separateOperations(doc)[info.operation.name.value];
+  const prunedAST = separateOperations(doc)[
+    (info.operation.name && info.operation.name.value) || ''];
 
   return print(prunedAST);
 };
