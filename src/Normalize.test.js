@@ -33,6 +33,22 @@ const testQueries = [
     'query OpName {user {name}}',
   ],
   [
+    'fragment',
+    gql`{
+      user {
+        name
+        ...Bar
+      }
+    }
+    fragment Bar on User {
+      asd
+    }
+    fragment Baz on User {
+      jkl
+    }`,
+    '{user {name ...Bar}} fragment Bar on User {asd}',
+  ],
+  [
     'full test',
     gql`query Foo ($b: Int, $a: Boolean){
       user(name: "hello", age: 5) {
@@ -55,8 +71,8 @@ const testQueries = [
     fragment Nested on User {
       blah
     }`,
-    'query Foo($a:Boolean,$b:Int) {user(age:0, name:"") {... on User {bee hello} ...Bar name tz}}' +
-    ' fragment Bar on User {...Nested age @skip(if:$a)} fragment Nested on User {blah}',
+    'query Foo($a:Boolean,$b:Int) {user(age:0, name:"") {name tz ...Bar ... on User {bee hello}}}' +
+    ' fragment Bar on User {age @skip(if:$a) ...Nested} fragment Nested on User {blah}',
   ],
 ];
 

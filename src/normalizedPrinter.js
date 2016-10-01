@@ -22,6 +22,39 @@ export function print(ast) {
   return visit(ast, { leave: printDocASTReducer });
 }
 
+
+// Define an ordering for field names in a printed result.
+// Fields first, then fragment spreads, then inline fragements.
+// Alphabetical within that.
+// See https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
+// for full details
+function nameOrder (a) {
+  if (a.substring(0,4) === "... ") {
+    return 2;
+  }
+  if (a.substring(0,3) === "...") {
+    return 1;
+  }
+  return 0;
+}
+function compareFieldNames(a, b) {
+  const aOrder = nameOrder(a);
+  const bOrder = nameOrder(b);
+  if (aOrder < bOrder) {
+    return -1;
+  }
+  if (aOrder > bOrder) {
+    return 1;
+  }
+  if (a < b) {
+    return -1;
+  }
+  if (a > b) {
+    return 1;
+  }
+  return 0;
+}
+
 const printDocASTReducer = {
   Name: node => node.value,
   Variable: node => '$' + node.name,
@@ -46,7 +79,7 @@ const printDocASTReducer = {
   VariableDefinition: ({ variable, type, defaultValue }) =>
     variable + ':' + type + wrap(' = ', defaultValue),
 
-  SelectionSet: ({ selections }) => block(selections && selections.sort()),
+  SelectionSet: ({ selections }) => block(selections && selections.sort(compareFieldNames)),
 
   Field: ({ alias, name, arguments: args, directives, selectionSet }) =>
     join([
