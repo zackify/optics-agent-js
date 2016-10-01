@@ -1,7 +1,7 @@
 // This file contains helper functions to format or normalize data.
 
 import { GraphQLList, GraphQLNonNull }  from 'graphql/type';
-import { separateOperations } from 'graphql/utilities';
+import { separateOperations } from './separateOperations';
 
 import { print } from './normalizedPrinter';
 
