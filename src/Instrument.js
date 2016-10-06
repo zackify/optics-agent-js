@@ -205,15 +205,18 @@ export const instrumentSchema = (schema) => {
 
   // add per field instrumentation
   forEachField(schema, (field, typeName, fieldName) => {
-    if (field.resolve) {
-      field.resolve = decorateField(
-        field.resolve,
-        { typeName, fieldName }
-      );
+    // If there is no resolver for a field, add the default resolve
+    // function (which matches the behavior of graphql-js when there
+    // is no explicit resolve function). This way we can instrument
+    // it.
+    if (!field.resolve) {
+      field.resolve = defaultResolveFn;
     }
-    // If we want to record counts for fields without resolvers,
-    // here's where we'd do it. See
-    // https://github.com/apollostack/optics-agent-js/issues/20.
+
+    field.resolve = decorateField(
+      field.resolve,
+      { typeName, fieldName }
+    );
   });
 
   // add per query instrumentation
@@ -250,3 +253,19 @@ export const newContext = (req, agent) => {
   context.req = req;
   return context;
 };
+
+
+////////// Helpers //////////
+
+
+// Copied from https://github.com/graphql/graphql-js/blob/v0.7.1/src/execution/execute.js#L1004
+function defaultResolveFn(source, args, context, { fieldName }) {
+  // ensure source is a value for which property access is acceptable.
+  if (typeof source === 'object' || typeof source === 'function') {
+    const property = source[fieldName];
+    if (typeof property === 'function') {
+      return source[fieldName](args, context);
+    }
+    return property;
+  }
+}
