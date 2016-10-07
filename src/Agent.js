@@ -71,8 +71,7 @@ export default class Agent {
     return opticsMiddleware;
   }
 
-  registerHapiExtensions (server) {
-    // XXX should we rename the public API?
+  instrumentHapiServer (server) {
     instrumentHapiServer(server);
   }
 
