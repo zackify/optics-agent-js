@@ -36,6 +36,7 @@ export const opticsMiddleware = (req, res, next) => {
 
   res.end = function () {
     context.durationHrTime = process.hrtime(context.startHrTime);
+    context.endWallTime = +new Date();
     context.oldResEnd && context.oldResEnd.apply(res, arguments);
 
     // put reporting later in the event loop after I/O, so hopefully we
