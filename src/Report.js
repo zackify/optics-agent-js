@@ -284,9 +284,13 @@ export const sendTrace = (agent, context) => {
 
     const trace = new Trace();
     // XXX make up a server_id
-    trace.start_time = report.start_time = new Timestamp(
+    trace.start_time = new Timestamp(
       { seconds: (context.startWallTime / 1000),
         nanos: (context.startWallTime % 1000)*1e6 });
+    trace.end_time = new Timestamp(
+      { seconds: (context.endWallTime / 1000),
+        nanos: (context.endWallTime % 1000)*1e6 });
+    trace.duration_ns = context.durationHrTime[0]*1e9 + context.durationHrTime[1];
 
     trace.signature = agent.normalizeQuery(info);
 
