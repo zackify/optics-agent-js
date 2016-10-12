@@ -214,21 +214,23 @@ message SchemaReport {
 
 // export top level types
 
-export const Id128 = protoBuilder.build("Id128");
-export const Timestamp = protoBuilder.build("Timestamp");
-export const Error = protoBuilder.build("Error");
+const ns = "apollo.optics.proto.";
 
-export const Trace = protoBuilder.build("Trace");
-export const ReportHeader = protoBuilder.build("ReportHeader");
-export const StatsPerClientName = protoBuilder.build("StatsPerClientName");
-export const FieldStat = protoBuilder.build("FieldStat");
-export const TypeStat = protoBuilder.build("TypeStat");
-export const StatsPerSignature = protoBuilder.build("StatsPerSignature");
+export const Id128 = protoBuilder.build(ns + "Id128");
+export const Timestamp = protoBuilder.build(ns + "Timestamp");
+export const Error = protoBuilder.build(ns + "Error");
 
-export const TracesReport = protoBuilder.build("TracesReport");
+export const Trace = protoBuilder.build(ns + "Trace");
+export const ReportHeader = protoBuilder.build(ns + "ReportHeader");
+export const StatsPerClientName = protoBuilder.build(ns + "StatsPerClientName");
+export const FieldStat = protoBuilder.build(ns + "FieldStat");
+export const TypeStat = protoBuilder.build(ns + "TypeStat");
+export const StatsPerSignature = protoBuilder.build(ns + "StatsPerSignature");
 
-export const Field = protoBuilder.build("Field");
-export const Type = protoBuilder.build("Type");
+export const TracesReport = protoBuilder.build(ns + "TracesReport");
 
-export const StatsReport = protoBuilder.build("StatsReport");
-export const SchemaReport = protoBuilder.build("SchemaReport");
+export const Field = protoBuilder.build(ns + "Field");
+export const Type = protoBuilder.build(ns + "Type");
+
+export const StatsReport = protoBuilder.build(ns + "StatsReport");
+export const SchemaReport = protoBuilder.build(ns + "SchemaReport");
