@@ -9,7 +9,7 @@ import { loadProto } from 'protobufjs';
 // at startup. This could be done with a babel plugin at compile time
 // instead.
 const protoBuilder = loadProto(`
-// reports 0.4.2016.9.9
+// reports 0.6.2016.10.11.1
 // from https://github.com/apollostack/optics-agent
 //
 // Copyright (c) 2016 Apollo
@@ -36,7 +36,8 @@ syntax = "proto3";
 
 import "google/protobuf/descriptor.proto";
 
-option java_package = "apollo.optics.proto";
+package apollo.optics.proto;
+
 option optimize_for = SPEED;
 
 extend google.protobuf.FieldOptions {
@@ -68,24 +69,11 @@ message Error {
 }
 
 message Trace {
-	Id128 server_id = 1 [(optional)=false];
-	Id128 client_id = 2 [(optional)=true];
-
-	Timestamp start_time = 4 [(optional)=false];
-
-	// Parsed, filtered for op (incl. fragments), reserialized
-	string signature = 5 [(optional)=false]; // see docs/signatures.md
-
 	message Details {
 		map<string, bytes> variables = 1 [(optional)=true];
 		string raw_query = 2 [(optional)=true];
 		string operation_name = 3 [(optional)=true];
 	}
-	Details details = 6 [(optional)=true];
-
-	string client_name = 7 [(optional)=false];
-	string client_version = 8 [(optional)=false];
-	string client_address = 9 [(optional)=false];
 
 	message HTTPInfo {
 		enum Method {
@@ -110,7 +98,6 @@ message Trace {
 		bool secure = 8 [(optional)=true]; // TLS was used
 		string protocol = 9 [(optional)=true]; // by convention "HTTP/1.0", "HTTP/1.1" or "h2"
 	}
-	HTTPInfo http = 10 [(optional)=true];
 
 	message Node {
 		oneof id {
@@ -125,9 +112,27 @@ message Trace {
 		uint64 start_time = 8 [(optional)=false];
 		uint64 end_time = 9 [(optional)=true];
 
-		repeated Error errors = 11 [(optional)=true];
-		repeated Node children = 12 [(optional)=false];
+		repeated Error error = 11 [(optional)=true];
+		repeated Node child = 12 [(optional)=false];
 	}
+
+	Id128 server_id = 1 [(optional)=false];
+	Id128 client_id = 2 [(optional)=true];
+
+	Timestamp start_time = 4 [(optional)=false];
+	Timestamp end_time = 3 [(optional)=false];
+	uint64 duration_ns = 11 [(optional)=false];
+
+	// Parsed, filtered for op (incl. fragments), reserialized
+	string signature = 5 [(optional)=false]; // see docs/signatures.md
+
+	Details details = 6 [(optional)=true];
+
+	string client_name = 7 [(optional)=false];
+	string client_version = 8 [(optional)=false];
+	string client_address = 9 [(optional)=false];
+
+	HTTPInfo http = 10 [(optional)=true];
 
 	Node parse = 12 [(optional)=true];
 	Node validate = 13 [(optional)=true];
@@ -135,11 +140,8 @@ message Trace {
 }
 
 message ReportHeader {
-	string auth_token = 1 [(optional)=false];
-	string account = 2 [(optional)=false];
-	string service = 3 [(optional)=false];
-	string environment = 4 [(optional)=true];
-	// eg "api.example.com"
+	string service = 3 [(optional)=true];
+	// eg "host-01.example.com"
 	string hostname = 5 [(optional)=true];
 
 	// eg "optics-agent-js 0.1.0"
@@ -153,31 +155,31 @@ message ReportHeader {
 }
 
 message StatsPerClientName {
-	repeated uint64 latency_counts = 1 [(optional)=true]; // Duration histogram; see docs/histograms.md
-	repeated uint64 error_counts = 2 [(optional)=true]; // Error histogram; see docs/histograms.md
+	repeated uint64 latency_count = 1 [(optional)=true]; // Duration histogram; see docs/histograms.md
+	repeated uint64 error_count = 2 [(optional)=true]; // Error histogram; see docs/histograms.md
 	map<string, uint64> count_per_version = 3 [(optional)=false];
 }
 
 message FieldStat {
 	string name = 2 [(optional)=false]; // eg "email" for User.email:String!
 	string returnType = 3 [(optional)=false]; // eg "String!" for User.email:String!
-	repeated uint64 latency_counts = 8 [(optional)=true]; // Duration histogram; see docs/histograms.md
+	repeated uint64 latency_count = 8 [(optional)=true]; // Duration histogram; see docs/histograms.md
 }
 
 message TypeStat {
 	string name = 1 [(optional)=false]; // eg "User" for User.email:String!
-	repeated FieldStat fields = 2 [(optional)=true];
+	repeated FieldStat field = 2 [(optional)=true];
 }
 
 message StatsPerSignature {
 	map<string, StatsPerClientName> per_client_name = 1 [(optional)=false];
-	repeated TypeStat per_types = 2 [(optional)=false];
+	repeated TypeStat per_type = 2 [(optional)=false];
 }
 
 // Top-level message type for the server-side traces endpoint
 message TracesReport {
 	ReportHeader header = 1 [(optional)=false];
-	repeated Trace traces = 2 [(optional)=false];
+	repeated Trace trace = 2 [(optional)=false];
 }
 
 message Field {
@@ -187,7 +189,7 @@ message Field {
 
 message Type {
 	string name = 1 [(optional)=false]; // eg "User" for User.email:String!
-	repeated Field fields = 2 [(optional)=true];
+	repeated Field field = 2 [(optional)=true];
 }
 
 // Top-level message type for the server-side stats endpoint
@@ -199,13 +201,13 @@ message StatsReport {
 	uint64 realtime_duration = 10 [(optional)=true];
 
 	map<string, StatsPerSignature> per_signature = 12 [(optional)=false];
-	repeated Type types = 13 [(optional)=true];
+	repeated Type type = 13 [(optional)=true];
 }
 
 message SchemaReport {
 	ReportHeader header = 1 [(optional)=false];
 	string introspection_result = 8 [(optional)=true];
-	repeated Type types = 9 [(optional)=true];
+	repeated Type type = 9 [(optional)=true];
 }
 `, null, "reports.proto");
 
