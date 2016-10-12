@@ -217,7 +217,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       { seconds: (startTime / 1000), nanos: (startTime % 1000)*1e6 });
     report.realtime_duration = durationHr[0]*1e9 + durationHr[1];
 
-    report.types = getTypesFromSchema(agent.schema);
+    report.type = getTypesFromSchema(agent.schema);
 
     // fill out per signature
     report.per_signature = {};
@@ -230,7 +230,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       Object.keys(clients).forEach((client) => {
         const versions = clients[client].perVersion;
         const v = new StatsPerClientName;
-        v.latency_counts = trimLatencyBuckets(clients[client].latencyBuckets);
+        v.latency_count = trimLatencyBuckets(clients[client].latencyBuckets);
         v.count_per_version = {};
         Object.keys(versions).forEach((version) => {
           const r = versions[version];
@@ -240,20 +240,20 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       });
 
       // add field stats
-      c.per_types = [];
+      c.per_type = [];
       const fields = reportData[query].perField;
       Object.keys(fields).forEach((parentType) => {
         const ts = new TypeStat;
-        c.per_types.push(ts);
+        c.per_type.push(ts);
         ts.name = parentType;
-        ts.fields = [];
+        ts.field = [];
         Object.keys(fields[parentType]).forEach((fieldName) => {
           const fs = new FieldStat;
-          ts.fields.push(fs);
+          ts.field.push(fs);
           const fObj = fields[parentType][fieldName];
           fs.name = fieldName;
           fs.returnType = fObj.returnType;
-          fs.latency_counts = trimLatencyBuckets(fObj.latencyBuckets);
+          fs.latency_count = trimLatencyBuckets(fObj.latencyBuckets);
         });
       });
 
@@ -314,7 +314,7 @@ export const sendTrace = (agent, context) => {
     trace.http.path = req.url;
 
     trace.execute = new Trace.Node();
-    trace.execute.children = context.resolverCalls.map((rep) => {
+    trace.execute.child = context.resolverCalls.map((rep) => {
       const n = new Trace.Node();
       n.field_name = rep.info.typeName + "." + rep.info.fieldName;
       n.start_time = rep.startOffset[0]*1e9 + rep.startOffset[1];
@@ -324,7 +324,7 @@ export const sendTrace = (agent, context) => {
     });
 
     // no batching for now.
-    report.traces = [trace];
+    report.trace = [trace];
 
     sendMessage(agent, '/api/ss/traces', report);
 
@@ -455,7 +455,7 @@ export const sendSchema = (agent, schema) => {
         uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`
       });
       report.introspection_result = schemaString;
-      report.types = getTypesFromSchema(schema);
+      report.type = getTypesFromSchema(schema);
 
       sendMessage(agent, '/api/ss/schema', report);
     }
@@ -508,14 +508,14 @@ export const getTypesFromSchema = (schema) => {
          }
     const t = new Type();
     t.name = typeName;
-    t.fields = [];
+    t.field = [];
     const fields = type.getFields();
     Object.keys(fields).forEach((fieldName) => {
       const field = fields[fieldName];
       const f = new Field();
       f.name = fieldName;
       f.returnType = printType(field.type);
-      t.fields.push(f);
+      t.field.push(f);
     });
     // XXX fields
     ret.push(t);
