@@ -491,11 +491,11 @@ export const sendMessage = (agent, path, message) => {
     } else if (res.statusCode < 200 || res.statusCode > 299) {
       console.log('Backend error', res.statusCode, body);
     }
-  });
 
-  if (agent.printReports) {
-    console.log("OPTICS", path, message.encodeJSON());
-  }
+    if (agent.printReports) {
+      console.log("OPTICS", path, message.encodeJSON(), body);
+    }
+  });
 };
 
 //////////////////// Helpers ////////////////////
