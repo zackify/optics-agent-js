@@ -320,7 +320,8 @@ export const sendTrace = (agent, context) => {
     trace.execute = new Trace.Node();
     trace.execute.child = context.resolverCalls.map((rep) => {
       const n = new Trace.Node();
-      n.field_name = rep.info.typeName + "." + rep.info.fieldName;
+      n.field_name = rep.fieldInfo.typeName + "." + rep.fieldInfo.fieldName;
+      n.type = printType(rep.resolverInfo.returnType);
       n.start_time = rep.startOffset[0]*1e9 + rep.startOffset[1];
       n.end_time = rep.endOffset[0]*1e9 + rep.endOffset[1];
       // XXX

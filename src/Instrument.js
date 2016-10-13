@@ -82,13 +82,14 @@ export const instrumentHapiServer = (server) => {
 // This is applied to each resolver in the schema by instrumentSchema
 // below.
 
-export const decorateField = (fn, info) => {
-  const decoratedResolver = (p, a, ctx, i) => {
+export const decorateField = (fn, fieldInfo) => {
+  const decoratedResolver = (p, a, ctx, resolverInfo) => {
     // setup context and note start time.
     const opticsContext = ctx.opticsContext;
     const resolverReport = {
       startOffset: process.hrtime(opticsContext.startHrTime),
-      info
+      fieldInfo,
+      resolverInfo
     };
     // save the report object for when we want to sent query traces.
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
@@ -104,13 +105,13 @@ export const decorateField = (fn, info) => {
                          resolverReport.startOffset[1]);
 
       // report our results over to Report.js for field stats.
-      reportResolver(opticsContext, i, info, nanos);
+      reportResolver(opticsContext, resolverInfo, fieldInfo, nanos);
     };
 
     // Actually run the resolver.
     let result;
     try {
-      result = fn(p, a, ctx, i);
+      result = fn(p, a, ctx, resolverInfo);
     } catch (e) {
       // Resolver function threw during execution. Note the error and
       // re-throw.
