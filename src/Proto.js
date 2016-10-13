@@ -2,7 +2,7 @@
 // the server. It exports JavaScript classes for each top-level type
 // in the proto file.
 
-import { loadProto } from 'protobufjs';
+import { loadProto } from 'protobufjs-no-cli';
 
 // Copied and pasted from https://github.com/apollostack/optics-agent
 // instead of using a seperate file so we can load w/o doing async I/O
