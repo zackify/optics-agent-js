@@ -4,12 +4,10 @@
 
 import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
-import { reportRequestStart, reportRequestEnd, reportResolver, reportSchema } from './Report';
-
-import { addLatencyToBuckets } from './Normalize';
+import { reportRequestStart, reportRequestEnd, reportResolver } from './Report';
 
 
-////////// Request Wrapping //////////
+// //////// Request Wrapping ////////
 
 // Here we wrap HTTP requests coming in to the web server.
 
@@ -30,14 +28,14 @@ export const opticsMiddleware = (req, res, next) => {
   const context = {
     startWallTime: +new Date(),
     startHrTime: process.hrtime(),
-    oldResEnd: res.end
+    oldResEnd: res.end,
   };
-  req._opticsContext = context;
+  req._opticsContext = context;  // eslint-disable-line no-param-reassign
 
-  res.end = function () {
+  res.end = (...args) => {  // eslint-disable-line no-param-reassign
     context.durationHrTime = process.hrtime(context.startHrTime);
     context.endWallTime = +new Date();
-    context.oldResEnd && context.oldResEnd.apply(res, arguments);
+    context.oldResEnd && context.oldResEnd.apply(res, args);
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
@@ -57,7 +55,7 @@ export const instrumentHapiServer = (server) => {
         opticsMiddleware(req, res, () => {});
         req._opticsRes = res;
         return reply.continue();
-      }
+      },
     }, {
       type: 'onPostHandler',
       method: (request, reply) => {
@@ -67,12 +65,12 @@ export const instrumentHapiServer = (server) => {
           res.end();
         }
         return reply.continue();
-      }
+      },
     }]);
 };
 
 
-////////// Resolver Wrapping //////////
+// //////// Resolver Wrapping ////////
 
 // Here we wrap resolver functions. The wrapped resolver notes start
 // and end times, resolvers that return null/undefined, and
@@ -89,7 +87,7 @@ export const decorateField = (fn, fieldInfo) => {
     const resolverReport = {
       startOffset: process.hrtime(opticsContext.startHrTime),
       fieldInfo,
-      resolverInfo
+      resolverInfo,
     };
     // save the report object for when we want to sent query traces.
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
@@ -99,9 +97,9 @@ export const decorateField = (fn, fieldInfo) => {
     const finishRun = () => {
       // note end time.
       resolverReport.endOffset = process.hrtime(opticsContext.startHrTime);
-      const nanos = (resolverReport.endOffset[0]*1e9 +
+      const nanos = ((resolverReport.endOffset[0] * 1e9) +
                      resolverReport.endOffset[1]) - (
-                       resolverReport.startOffset[0]*1e9 +
+                       (resolverReport.startOffset[0] * 1e9) +
                          resolverReport.startOffset[1]);
 
       // report our results over to Report.js for field stats.
@@ -132,12 +130,10 @@ export const decorateField = (fn, fieldInfo) => {
     try {
       if (result === null) {
         resolverReport.resultNull = true;
-      }
-      else if (typeof result === 'undefined') {
+      } else if (typeof result === 'undefined') {
         resolverReport.resultUndefined = true;
-      }
-      // single promise
-      else if (typeof result.then === 'function') {
+      } else if (typeof result.then === 'function') {
+        // single promise
         result.then((res) => {
           finishRun();
           return res;
@@ -148,11 +144,11 @@ export const decorateField = (fn, fieldInfo) => {
         });
         // exit early so we do not hit the default return.
         return result;
-      }
-      // array
-      else if (Array.isArray(result)) {
+      } else if (Array.isArray(result)) {
+        // array
+
         // collect the promises in the array, if any.
-        let promises = [];
+        const promises = [];
         result.forEach((value) => {
           if (value && typeof value.then === 'function') {
             promises.push(value);
@@ -192,7 +188,24 @@ export const decorateField = (fn, fieldInfo) => {
 };
 
 
-////////// Schema Wrapping //////////
+// //////// Helpers ////////
+
+// Copied from https://github.com/graphql/graphql-js/blob/v0.7.1/src/execution/execute.js#L1004
+// with 'return undefined' added for clarity (and eslint)
+function defaultResolveFn(source, args, context, { fieldName }) {
+  // ensure source is a value for which property access is acceptable.
+  if (typeof source === 'object' || typeof source === 'function') {
+    const property = source[fieldName];
+    if (typeof property === 'function') {
+      return source[fieldName](args, context);
+    }
+    return property;
+  }
+  return undefined;
+}
+
+
+//  //////// Schema Wrapping ////////
 
 // Here we take the executable schema object that graphql-js will
 // execute against and add wrappings. We add both a per-schema
@@ -203,7 +216,7 @@ export const instrumentSchema = (schema) => {
   if (schema._opticsInstrumented) {
     return schema;
   }
-  schema._opticsInstrumented = true;
+  schema._opticsInstrumented = true;  // eslint-disable-line no-param-reassign
 
   // add per field instrumentation
   forEachField(schema, (field, typeName, fieldName) => {
@@ -212,10 +225,10 @@ export const instrumentSchema = (schema) => {
     // is no explicit resolve function). This way we can instrument
     // it.
     if (!field.resolve) {
-      field.resolve = defaultResolveFn;
+      field.resolve = defaultResolveFn; // eslint-disable-line no-param-reassign
     }
 
-    field.resolve = decorateField(
+    field.resolve = decorateField(  // eslint-disable-line no-param-reassign
       field.resolve,
       { typeName, fieldName }
     );
@@ -235,7 +248,7 @@ export const instrumentSchema = (schema) => {
 };
 
 
-////////// Glue //////////
+// //////// Glue ////////
 
 
 // The graphql `context` object is how we get state into the resolver
@@ -249,25 +262,9 @@ export const newContext = (req, agent) => {
     // This shouldn't happen. The middleware is supposed to have
     // already added the _opticsContext field.
     context = {};
-  };
+  }
   context.resolverCalls = [];
   context.agent = agent;
   context.req = req;
   return context;
 };
-
-
-////////// Helpers //////////
-
-
-// Copied from https://github.com/graphql/graphql-js/blob/v0.7.1/src/execution/execute.js#L1004
-function defaultResolveFn(source, args, context, { fieldName }) {
-  // ensure source is a value for which property access is acceptable.
-  if (typeof source === 'object' || typeof source === 'function') {
-    const property = source[fieldName];
-    if (typeof property === 'function') {
-      return source[fieldName](args, context);
-    }
-    return property;
-  }
-}

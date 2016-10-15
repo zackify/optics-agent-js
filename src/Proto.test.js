@@ -1,3 +1,5 @@
+/* eslint-env mocha */
+
 import { StatsReport } from './Proto';
 
 // Very minimal test to validate that the protobuf parses.

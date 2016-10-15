@@ -1,0 +1,14 @@
+language: node_js
+node_js:
+  - "6.2"
+  - "5.1"
+# "4.4" currently fails in Travis running tests: Error: Cannot find module 'babel-core/register'
+install:
+  - npm install
+
+script:
+  - npm run lint
+  - npm test
+
+# Allow Travis tests to run in containers.
+sudo: false
