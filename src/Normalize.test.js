@@ -1,3 +1,4 @@
+/* eslint-env mocha */
 import { assert } from 'chai';
 import gql from 'graphql-tag';
 
@@ -77,15 +78,15 @@ const testQueries = [
 ];
 
 describe('normalizeQuery', () => {
-  testQueries.map(([testName, inputDocument, outString],i) => {
+  testQueries.forEach(([testName, inputDocument, outString]) => {
     it(testName, () => {
       const fragments = {};
       let operation = null;
-      inputDocument.definitions.forEach( def => {
-        if (def.kind === 'OperationDefinition'){
+      inputDocument.definitions.forEach((def) => {
+        if (def.kind === 'OperationDefinition') {
           operation = def;
         }
-        if (def.kind === 'FragmentDefinition'){
+        if (def.kind === 'FragmentDefinition') {
           fragments[def.name.value] = def;
         }
       });

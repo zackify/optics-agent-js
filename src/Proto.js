@@ -1,3 +1,5 @@
+/* eslint-disable no-tabs */
+
 // This file contains the protobuf description for the reports sent to
 // the server. It exports JavaScript classes for each top-level type
 // in the proto file.
@@ -209,28 +211,30 @@ message SchemaReport {
 	string introspection_result = 8 [(optional)=true];
 	repeated Type type = 9 [(optional)=true];
 }
-`, null, "reports.proto");
+`, null, 'reports.proto');
 
 
 // export top level types
 
-const ns = "apollo.optics.proto.";
+function ns(name) {
+  return `apollo.optics.proto.${name}`;
+}
 
-export const Id128 = protoBuilder.build(ns + "Id128");
-export const Timestamp = protoBuilder.build(ns + "Timestamp");
-export const Error = protoBuilder.build(ns + "Error");
+export const Id128 = protoBuilder.build(ns('Id128'));
+export const Timestamp = protoBuilder.build(ns('Timestamp'));
+export const Error = protoBuilder.build(ns('Error'));
 
-export const Trace = protoBuilder.build(ns + "Trace");
-export const ReportHeader = protoBuilder.build(ns + "ReportHeader");
-export const StatsPerClientName = protoBuilder.build(ns + "StatsPerClientName");
-export const FieldStat = protoBuilder.build(ns + "FieldStat");
-export const TypeStat = protoBuilder.build(ns + "TypeStat");
-export const StatsPerSignature = protoBuilder.build(ns + "StatsPerSignature");
+export const Trace = protoBuilder.build(ns('Trace'));
+export const ReportHeader = protoBuilder.build(ns('ReportHeader'));
+export const StatsPerClientName = protoBuilder.build(ns('StatsPerClientName'));
+export const FieldStat = protoBuilder.build(ns('FieldStat'));
+export const TypeStat = protoBuilder.build(ns('TypeStat'));
+export const StatsPerSignature = protoBuilder.build(ns('StatsPerSignature'));
 
-export const TracesReport = protoBuilder.build(ns + "TracesReport");
+export const TracesReport = protoBuilder.build(ns('TracesReport'));
 
-export const Field = protoBuilder.build(ns + "Field");
-export const Type = protoBuilder.build(ns + "Type");
+export const Field = protoBuilder.build(ns('Field'));
+export const Type = protoBuilder.build(ns('Type'));
 
-export const StatsReport = protoBuilder.build(ns + "StatsReport");
-export const SchemaReport = protoBuilder.build(ns + "SchemaReport");
+export const StatsReport = protoBuilder.build(ns('StatsReport'));
+export const SchemaReport = protoBuilder.build(ns('SchemaReport'));

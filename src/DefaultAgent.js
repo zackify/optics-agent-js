@@ -12,7 +12,7 @@ let defaultAgent = null;
 // once before any other calls.
 export const configureAgent = (options) => {
   if (defaultAgent) {
-    defaultAgent.debugFn("Error: default agent already configured.");
+    defaultAgent.debugFn('Error: default agent already configured.');
     return;
   }
 
@@ -22,21 +22,21 @@ export const configureAgent = (options) => {
 };
 
 export const instrumentSchema = (schema) => {
-  if (!defaultAgent) { defaultAgent = new Agent; }
+  if (!defaultAgent) { defaultAgent = new Agent(); }
   return defaultAgent.instrumentSchema(schema);
 };
 
 export const middleware = () => {
-  if (!defaultAgent) { defaultAgent = new Agent; }
+  if (!defaultAgent) { defaultAgent = new Agent(); }
   return defaultAgent.middleware();
 };
 
 export const instrumentHapiServer = (server) => {
-  if (!defaultAgent) { defaultAgent = new Agent; }
+  if (!defaultAgent) { defaultAgent = new Agent(); }
   return defaultAgent.instrumentHapiServer(server);
 };
 
 export const context = (req) => {
-  if (!defaultAgent) { defaultAgent = new Agent; }
+  if (!defaultAgent) { defaultAgent = new Agent(); }
   return defaultAgent.context(req);
 };

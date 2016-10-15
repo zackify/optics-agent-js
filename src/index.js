@@ -13,7 +13,7 @@ export default {
   middleware,
   instrumentHapiServer,
   context,
-  Agent
+  Agent,
 };
 
 export {
@@ -22,5 +22,5 @@ export {
   middleware,
   instrumentHapiServer,
   context,
-  Agent
+  Agent,
 };

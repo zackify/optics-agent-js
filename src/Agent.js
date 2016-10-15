@@ -18,7 +18,7 @@ import {
 
 import {
   reportSchema,
-  sendReport
+  sendReport,
 } from './Report';
 
 export default class Agent {
@@ -27,16 +27,17 @@ export default class Agent {
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
       endpointUrl, reportIntervalMs, printReports,
-      reportTraces, reportVariables
+      reportTraces, reportVariables,
     } = options || {};
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
-    this.debugFn = debugFn || console.log; // XXX actually use me
+    // XXX actually use debugFn
+    this.debugFn = debugFn || console.log; // eslint-disable-line no-console
     this.normalizeVersion = normalizeVersion || defaultNV;
     this.normalizeQuery = normalizeQuery || defaultNQ;
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
                         'https://optics-report.apollodata.com/');
-    this.endpointUrl = this.endpointUrl.replace(/\/$/, "");
-    this.reportIntervalMs = reportIntervalMs || 60*1000;
+    this.endpointUrl = this.endpointUrl.replace(/\/$/, '');
+    this.reportIntervalMs = reportIntervalMs || (60 * 1000);
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;
@@ -56,9 +57,8 @@ export default class Agent {
     // Interval to send the reports. Per
     // https://github.com/apollostack/optics-agent-js/issues/4 we may
     // want to make this more complicated than just setInterval.
-    this.reportTimer = setInterval(() => { this.sendReport() },
+    this.reportTimer = setInterval(() => { this.sendReport(); },
                                    this.reportIntervalMs);
-
   }
 
   instrumentSchema(schema) {
@@ -71,7 +71,7 @@ export default class Agent {
     return opticsMiddleware;
   }
 
-  instrumentHapiServer (server) {
+  instrumentHapiServer(server) {
     instrumentHapiServer(server);
   }
 
@@ -91,4 +91,4 @@ export default class Agent {
     // actually send
     sendReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
   }
-};
+}
