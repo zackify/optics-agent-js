@@ -10,6 +10,13 @@ Here are the steps to enable Optics Agent in your app. See below for details on 
  * Add the middleware: `expressServer.use(OpticsAgent.middleware());`
  * Add to your GraphQL context object: `context.opticsContext = OpticsAgent.context(req);`
 
+## Version requirements
+
+Optics Agent supports:
+
+* Node: 4, 5 and 6
+* [graphql](https://www.npmjs.com/package/graphql): 0.6 and 0.7
+
 ## Install
 
 First, install the package

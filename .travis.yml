@@ -1,9 +1,18 @@
 language: node_js
+# Test against three versions of Node.
 node_js:
-  - "6.2"
-  - "5.1"
-# "4.4" currently fails in Travis running tests: Error: Cannot find module 'babel-core/register'
+  - "6"
+  - "5"
+  - "4"
+# Test against two versions of graphql (a peer dependency).
+env:
+  - GRAPHQL_VERSION=0.6
+  - GRAPHQL_VERSION=0.7
 install:
+  # We need a new version of npm to install babel in such a way that mocha can
+  # find it.
+  - npm install -g npm@latest
+  - npm install graphql@${GRAPHQL_VERSION}
   - npm install
 
 script:
