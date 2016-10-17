@@ -14,7 +14,7 @@ const protoBuilder = loadProto(`
 // reports 0.6.2016.10.11.1
 // from https://github.com/apollostack/optics-agent
 //
-// Copyright (c) 2016 Apollo
+// Copyright (c) 2016 Meteor Development Group, Inc.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
