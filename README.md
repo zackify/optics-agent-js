@@ -4,7 +4,9 @@ Optics Agent for GraphQL-js
 Here are the steps to enable Optics Agent in your app. See below for details on each step:
 * Install the NPM package in your app: `npm install optics-agent --save`
 * Import the package in your main js file: `import OpticsAgent from 'optics-agent';`
-* [optional] Configure the agent: `OpticsAgent.configureAgent({ options });`
+* Get an API key from the Optics web interface and configure the agent. Either:
+ * Set the `OPTICS_API_KEY` environment variable to your API key
+ * Set the API key and more with `OpticsAgent.configureAgent({ options });`
 * Instrument your app. In any order:
  * Instrument your schema: `OpticsAgent.instrumentSchema(executableSchema);`
  * Add the middleware: `expressServer.use(OpticsAgent.middleware());`
@@ -27,7 +29,7 @@ npm install optics-agent --save
 
 ## Configure
 
-Next, setup the agent in your main server file.
+Next, set up the agent in your main server file.
 
 ### Import the package
 
@@ -47,32 +49,32 @@ import OpticsAgent from 'optics-agent';
 OpticsAgent.configureAgent({ configOptions })
 ```
 
-Normally you do not need to call this function -- just set the `OPTICS_API_KEY` environment variable. Call this function if you set the API key in code instead of through the environment variable, or if you need to set specific non-default value for options. Call this _before_ any calls to instrumentation functions below.
+Normally you do not need to call this function -- just set the `OPTICS_API_KEY` environment variable. Call this function if you set the API key in code instead of through the environment variable, or if you need to set specific non-default values for other options. Call this _before_ any calls to instrumentation functions below.
 
 Options include:
 
-* `apiKey`: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environtment variable, but can be overriden here.
+* `apiKey`: String. Your API key for the Optics service. This defaults to the `OPTICS_API_KEY` environment variable, but can be overridden here.
 
-* `reportTraces`: Boolean: Send detailed traces along with usage reports. Defaults to true.
+* `reportTraces`: Boolean. Send detailed traces along with usage reports. Defaults to true.
 
-* `reportVariables`: Boolean: Send the query variables along with traces. Defaults to true.
+* `reportVariables`: Boolean. Send the query variables along with traces. Defaults to true.
 
-* `normalizeVersion`: Function(req)->[String,String]. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
+* `normalizeVersion`: Function([http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage))⇒{client_name: String, client_version: String}. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
 
-* `normalizeQuery`: Function(info)->String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
+* `normalizeQuery`: Function([GraphQLResolveInfo](http://graphql.org/graphql-js/type/#graphqlobjecttype))⇒String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
 
-* `debugFn`: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
+* `debugFn`: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence Optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
 
-* `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or `OPTICS_ENDPOINT_URL` if it is set. You shouldn't need to set this unless you are debugging.
+* `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or the `OPTICS_ENDPOINT_URL` environment variable if it is set. You shouldn't need to set this unless you are debugging.
 
-* `reportIntervalMs`: Int. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
+* `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
 
-* `printReports`: Boolean: Print reports as the are sent. This may be useful for debugging. Defaults to false.
+* `printReports`: Boolean. Print a JSON version of reports as they are sent. This may be useful for debugging. Defaults to false.
 
 
 ### Instrument your schema
 
-Call `instrumentSchema` on the same executable schema object you pass to `graphql-js` to run.
+Call `instrumentSchema` on the same [executable schema object](http://graphql.org/graphql-js/type/#graphqlschema) you pass to the [`graphql` function from `graphql-js`](http://graphql.org/graphql-js/graphql/#graphql):
 
 ```
 OpticsAgent.instrumentSchema(executableSchema);
@@ -82,13 +84,17 @@ You should only call this once per agent. If you have multiple or dynamic schema
 
 ### Add the middleware
 
-Setup middleware:
+Set up middleware:
 
 #### Express
+
+Tell your server to run the Optics Agent middleware:
+
 ```
 expressServer.use(OpticsAgent.middleware());
 ```
-Do this right before your GraphQL server for best results.
+
+This must run before the handler that actually executes your GraphQL queries.  For the most accurate timings, avoid inserting unnecessary middleware between the Optics Agent middleware and your GraphQL middleware.
 
 #### HAPI
 ```
@@ -98,10 +104,16 @@ OpticsAgent.instrumentHapiServer(hapiServer);
 
 ### Add a context to each graphql request
 
-In the `context` object sent to graphql, add a new field:
+Inside your request handler, if you are calling `graphql` directly, add a new
+field to the `context` object sent to `graphql`:
+
 ```
 { opticsContext: OpticsAgent.context(req) }
 ```
+
+If you are using `apolloExpress`, this will be a field on
+the
+[`context` object on the `ApolloOptions` value that you return](http://dev.apollodata.com/tools/apollo-server/setup.html#options-function).
 
 If you are using HAPI you must explicitly use the raw request object:
 ```
@@ -168,6 +180,4 @@ If you need to have more than one Agent per process, you can manually construct 
 var OpticsAgent = require('optics-agent');
 var agent = new OpticsAgent.Agent({ apiKey: '1234' });
 agent.instrumentSchema(schema);
-...
-
 ```
