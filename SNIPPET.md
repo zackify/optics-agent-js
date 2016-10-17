@@ -1,13 +1,30 @@
-Install via npm
+Install the NPM package in your app:
+
 ```
-$ npm install --save optics-agent
+$ npm install optics-agent --save
 ```
-Instrument your GraphQL Server
+
+Set the `OPTICS_API_KEY` environment variable to the API key shown above.
+
+Import the package in your main js file:
+
 ```js
 import OpticsAgent from 'optics-agent';
-OpticsAgent.configureAgent({ apiKey: '...' });
+```
+
+Instrument your schema:
+```js
 OpticsAgent.instrumentSchema(executableSchema);
-expressServer.use(OpticsAgent.middleware());
+```
+
+Add the middleware:
+```js
+expressServer.use(OpticsAgent.middleware());`
+```
+
+Add to your GraphQL context object:
+```js
 context.opticsContext = OpticsAgent.context(req);
 ```
-[Read more: optics-agent-js on GitHub](https://github.com/apollostack/optics-agent-js)
+
+For more details, see [the optics-agent-js README](https://github.com/apollostack/optics-agent-js/blob/master/README.md).
