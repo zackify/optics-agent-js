@@ -40,6 +40,7 @@
   },
   "dependencies": {
     "graphql-tools": "^0.7.2",
+    "on-finished": "^2.3.0",
     "protobufjs-no-cli": "^5.0.1",
     "request": "^2.74.0"
   }

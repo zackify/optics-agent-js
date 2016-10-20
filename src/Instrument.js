@@ -6,6 +6,7 @@ import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
 import { reportRequestStart, reportRequestEnd, reportResolver } from './Report';
 
+var onFinished = require('on-finished');
 
 // //////// Request Wrapping ////////
 
@@ -23,24 +24,31 @@ import { reportRequestStart, reportRequestEnd, reportResolver } from './Report';
 // server. Supporting new web servers besides Express and HAPI should
 // be contained here.
 
-
-export const opticsMiddleware = (req, res, next) => {
+const preRequest = (req) => {
   const context = {
     startWallTime: +new Date(),
-    startHrTime: process.hrtime(),
-    oldResEnd: res.end,
+    startHrTime: process.hrtime()
   };
   req._opticsContext = context;  // eslint-disable-line no-param-reassign
+};
 
-  res.end = (...args) => {  // eslint-disable-line no-param-reassign
+const postRequest = (req) => {
+  const context = req._opticsContext;
+  if (context) {
     context.durationHrTime = process.hrtime(context.startHrTime);
     context.endWallTime = +new Date();
-    context.oldResEnd && context.oldResEnd.apply(res, args);
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
     setImmediate(() => { reportRequestEnd(req); });
-  };
+  }
+};
+
+export const opticsMiddleware = (req, res, next) => {
+  preRequest(req);
+  onFinished(res, (err, _res) => {
+    postRequest(req);
+  });
 
   return next();
 };
@@ -51,19 +59,14 @@ export const instrumentHapiServer = (server) => {
       type: 'onPreHandler',
       method: (request, reply) => {
         const req = request.raw.req;
-        const res = {};
-        opticsMiddleware(req, res, () => {});
-        req._opticsRes = res;
+        preRequest(req);
         return reply.continue();
       },
     }, {
       type: 'onPostHandler',
       method: (request, reply) => {
         const req = request.raw.req;
-        const res = req._opticsRes;
-        if (res && res.end) {
-          res.end();
-        }
+        postRequest(req);
         return reply.continue();
       },
     }]);
