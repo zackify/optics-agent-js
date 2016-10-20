@@ -174,7 +174,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
 };
 
 
-export const sendTrace = (agent, context) => {
+export const sendTrace = (agent, context, info, resolvers) => {
   // exceptions from here are caught and ignored somewhere.
   // catch manually for debugging.
   try {
@@ -187,7 +187,6 @@ export const sendTrace = (agent, context) => {
       uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
     });
     const req = context.req;
-    const info = context.info;
 
     const trace = new Trace();
     // XXX make up a server_id
@@ -225,7 +224,7 @@ export const sendTrace = (agent, context) => {
     trace.http.path = req.url;
 
     trace.execute = new Trace.Node();
-    trace.execute.child = context.resolverCalls.map((rep) => {
+    trace.execute.child = resolvers.map((rep) => {
       // XXX for now we just list all the resolvers in a flat list.
       //
       // With graphql 0.6.1+ we have the path field in resolverInfo so
@@ -386,125 +385,180 @@ export const reportRequestStart = (context, queryInfo, queryContext) => {
     // Happens when non-graphql requests come through.
     return;
   }
-  // stash info object for later.
-  context.info = queryInfo; // eslint-disable-line no-param-reassign
-  context.queryContext = queryContext; // eslint-disable-line no-param-reassign
 
-  // XXX XXX batch detection goes here.
+  // This may be called more than once per request, for example
+  // apollo-server can batch multiple requests in a single POST (aka
+  // Transport Level Batching).
+  //
+  // We keep track of each info object separately, along with the
+  // `context` object passed to the query, and use these to determine
+  // which resolver runs correspond to which query.
+  //
+  // Store a list of { info, context } objects. This is a contract
+  // between reportRequestStart and reportRequestEnd.
+  if (!context.queries) {
+    context.queries = []; // eslint-disable-line no-param-reassign
+  }
+  context.queries.push({
+    info: queryInfo,
+    context: queryContext,
+  });
 };
 
-export const reportTrace = (agent, context) => {
+export const reportTrace = (agent, context, info, resolvers) => {
   // For now just send every trace immediately. We might want to add
   // batching here at some point.
   //
   // Send in its own function on the event loop to minimize impact on
   // response times.
-  setImmediate(() => sendTrace(agent, context));
+  setImmediate(() => sendTrace(agent, context, info, resolvers));
 };
 
 // called once per query by the middleware when the request ends.
 export const reportRequestEnd = (req) => {
   const context = req._opticsContext;
-  if (!context || !context.info || !context.agent) {
+  if (!context || !context.queries || !context.agent) {
     // Happens when non-graphql requests come through.
     return;
   }
-  const info = context.info;
+
+  const queries = context.queries;
   const agent = context.agent;
 
   try {
-    // XXX batch detection here. iterate over a list of queries.
-
-    const query = agent.normalizeQuery(info);
-    const { client_name, client_version } = agent.normalizeVersion(req);
-    const res = agent.pendingResults;
-
-
-    // Initialize per-query state in the report if we're the first of
-    // this query shape to come in this report period.
-    if (!res[query]) {
-      res[query] = {
-        perClient: {},
-        perField: {},
-      };
-    }
-
-    // fill out per field if we haven't already for this query shape.
-    const perField = res[query].perField;
-    if (Object.keys(perField).length === 0) {
-      const typeInfo = new TypeInfo(agent.schema);
-      visit(info.operation, visitWithTypeInfo(typeInfo, {
-        Field: () => {
-          const parentType = typeInfo.getParentType().name;
-          if (!perField[parentType]) {
-            perField[parentType] = {};
-          }
-          const fieldName = typeInfo.getFieldDef().name;
-          perField[parentType][fieldName] = {
-            returnType: printType(typeInfo.getType()),
-            latencyBuckets: newLatencyBuckets(),
-          };
-        },
-      }));
-    }
-
-    // initialize latency buckets if this is the first time we've had
-    // a query from this client type in this period.
-    const perClient = res[query].perClient;
-    if (!perClient[client_name]) {
-      perClient[client_name] = {
-        latencyBuckets: newLatencyBuckets(),
-        perVersion: {},
-      };
-    }
-
-    // now that we've initialized, this should always be set.
-    const clientObj = (
-      res[query] && res[query].perClient && res[query].perClient[client_name]);
-
-    if (!clientObj) {
-      // XXX huh?
-      console.log('CC2', query);  // eslint-disable-line no-console
-      return;
-    }
-
-    const nanos = durationHrTimeToNanos(context.durationHrTime);
-
-    // check to see if we've sent a trace for this bucket yet this
-    // report period. if we haven't, send one now.
-    const bucket = latencyBucket(nanos);
-    const numSoFar = clientObj.latencyBuckets[bucket];
-    if (numSoFar === 0 && agent.reportTraces) {
-      reportTrace(agent, context);
-    }
-
-    // add query latency to buckets
-    addLatencyToBuckets(clientObj.latencyBuckets, nanos);
-
-    // add per-client version count to buckets
-    const perVersion = clientObj.perVersion;
-    if (!perVersion[client_version]) {
-      perVersion[client_version] = 0;
-    }
-    perVersion[client_version] += 1;
-
-    // add resolver timing to latency buckets
+    // Separate out resolvers into buckets by query. To determine
+    // which query a resolver corresponds to in the case of multiple
+    // queries per HTTP request, we look at the GraphQL `context` and
+    // `operation` objects which are available both at query start
+    // time and during resolver runs.
+    //
+    // Implementations that do batching of GraphQL requests (such as
+    // apollo-server) should use a seperate `context` object for each
+    // request in the batch. Shallow cloning is sufficient.
+    //
+    // For backwards compatibitility with older versions of
+    // apollo-server, and potentially with other graphql integrations,
+    // we also look at the `operation` object. This will be different
+    // for each query in the batch unless the application is using
+    // pre-prepared queries and the user sends multiple queries for
+    // the same operation in the same batch.
     (context.resolverCalls || []).forEach((resolverReport) => {
-      const { typeName, fieldName } = resolverReport.fieldInfo;
-      if (resolverReport.endOffset && resolverReport.startOffset) {
-        const resolverNanos =
-                durationHrTimeToNanos(resolverReport.endOffset) -
-                durationHrTimeToNanos(resolverReport.startOffset);
-        const fObj = res &&
-                res[query] &&
-                res[query].perField &&
-                res[query].perField[typeName] &&
-                res[query].perField[typeName][fieldName];
-        if (!fObj) {
-          // XXX when could this happen now?
-          return;
+      // check the report is complete.
+      if (!resolverReport.resolverInfo ||
+          !resolverReport.resolverInfo.operation ||
+          !resolverReport.fieldInfo ||
+          !resolverReport.startOffset ||
+          !resolverReport.endOffset) {
+        return;
+      }
+
+      for (const queryObj of queries) {
+        if (resolverReport.resolverInfo.operation === queryObj.info.operation &&
+            resolverReport.resolverContext === queryObj.context) {
+          if (!queryObj.resolvers) {
+            queryObj.resolvers = [];
+          }
+          queryObj.resolvers.push(resolverReport);
+          break;
         }
-        addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
+      }
+    });
+
+    // Iterate over each query in this request and aggregate its
+    // timing and resolvers.
+    queries.forEach(({ info, resolvers: queryResolvers = [] }) => {
+      const query = agent.normalizeQuery(info);
+      const { client_name, client_version } = agent.normalizeVersion(req);
+      const res = agent.pendingResults;
+
+      // Initialize per-query state in the report if we're the first of
+      // this query shape to come in this report period.
+      if (!res[query]) {
+        res[query] = {
+          perClient: {},
+          perField: {},
+        };
+      }
+
+      // fill out per field if we haven't already for this query shape.
+      const perField = res[query].perField;
+      if (Object.keys(perField).length === 0) {
+        const typeInfo = new TypeInfo(agent.schema);
+        visit(info.operation, visitWithTypeInfo(typeInfo, {
+          Field: () => {
+            const parentType = typeInfo.getParentType().name;
+            if (!perField[parentType]) {
+              perField[parentType] = {};
+            }
+            const fieldName = typeInfo.getFieldDef().name;
+            perField[parentType][fieldName] = {
+              returnType: printType(typeInfo.getType()),
+              latencyBuckets: newLatencyBuckets(),
+            };
+          },
+        }));
+      }
+
+      // initialize latency buckets if this is the first time we've had
+      // a query from this client type in this period.
+      const perClient = res[query].perClient;
+      if (!perClient[client_name]) {
+        perClient[client_name] = {
+          latencyBuckets: newLatencyBuckets(),
+          perVersion: {},
+        };
+      }
+
+      // now that we've initialized, this should always be set.
+      const clientObj = (
+        res[query] && res[query].perClient && res[query].perClient[client_name]);
+
+      if (!clientObj) {
+        // XXX huh?
+        console.log('CC2', query);  // eslint-disable-line no-console
+        return;
+      }
+
+      const nanos = durationHrTimeToNanos(context.durationHrTime);
+
+      // add query latency to buckets
+      addLatencyToBuckets(clientObj.latencyBuckets, nanos);
+
+      // add per-client version count to buckets
+      const perVersion = clientObj.perVersion;
+      if (!perVersion[client_version]) {
+        perVersion[client_version] = 0;
+      }
+      perVersion[client_version] += 1;
+
+      // now iterate over our resolvers and add them to the latency buckets.
+      queryResolvers.forEach((resolverReport) => {
+        const { typeName, fieldName } = resolverReport.fieldInfo;
+        if (resolverReport.endOffset && resolverReport.startOffset) {
+          const resolverNanos =
+                  durationHrTimeToNanos(resolverReport.endOffset) -
+                  durationHrTimeToNanos(resolverReport.startOffset);
+          const fObj = res &&
+                  res[query] &&
+                  res[query].perField &&
+                  res[query].perField[typeName] &&
+                  res[query].perField[typeName][fieldName];
+          if (!fObj) {
+            // XXX when could this happen now?
+            return;
+          }
+          addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
+        }
+      });
+
+
+      // check to see if we've sent a trace for this bucket yet this
+      // report period. if we haven't (ie, if we're the only query in
+      // this bucket), send one now.
+      const bucket = latencyBucket(nanos);
+      const numSoFar = clientObj.latencyBuckets[bucket];
+      if (numSoFar === 1 && agent.reportTraces) {
+        reportTrace(agent, context, info, queryResolvers);
       }
     });
   } catch (e) {
