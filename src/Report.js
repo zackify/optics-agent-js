@@ -54,7 +54,6 @@ export const getTypesFromSchema = (schema) => {
       f.returnType = printType(field.type);
       t.field.push(f);
     });
-    // XXX fields
     ret.push(t);
   });
   return ret;
@@ -227,12 +226,16 @@ export const sendTrace = (agent, context) => {
 
     trace.execute = new Trace.Node();
     trace.execute.child = context.resolverCalls.map((rep) => {
+      // XXX for now we just list all the resolvers in a flat list.
+      //
+      // With graphql 0.6.1+ we have the path field in resolverInfo so
+      // we should make these into a hierarchical list.
+      // See: https://github.com/apollostack/optics-agent-js/issues/34
       const n = new Trace.Node();
       n.field_name = `${rep.fieldInfo.typeName}.${rep.fieldInfo.fieldName}`;
       n.type = printType(rep.resolverInfo.returnType);
       n.start_time = durationHrTimeToNanos(rep.startOffset);
       n.end_time = durationHrTimeToNanos(rep.endOffset);
-      // XXX
       return n;
     });
 
