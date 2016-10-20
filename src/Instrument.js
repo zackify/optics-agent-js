@@ -4,7 +4,7 @@
 
 import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
-import { reportRequestStart, reportRequestEnd, reportResolver } from './Report';
+import { reportRequestStart, reportRequestEnd } from './Report';
 
 
 // //////// Request Wrapping ////////
@@ -88,6 +88,7 @@ export const decorateField = (fn, fieldInfo) => {
       startOffset: process.hrtime(opticsContext.startHrTime),
       fieldInfo,
       resolverInfo,
+      resolverContext: ctx,
     };
     // save the report object for when we want to sent query traces.
     opticsContext && opticsContext.resolverCalls.push(resolverReport);
@@ -97,13 +98,6 @@ export const decorateField = (fn, fieldInfo) => {
     const finishRun = () => {
       // note end time.
       resolverReport.endOffset = process.hrtime(opticsContext.startHrTime);
-      const nanos = ((resolverReport.endOffset[0] * 1e9) +
-                     resolverReport.endOffset[1]) - (
-                       (resolverReport.startOffset[0] * 1e9) +
-                         resolverReport.startOffset[1]);
-
-      // report our results over to Report.js for field stats.
-      reportResolver(opticsContext, resolverInfo, fieldInfo, nanos);
     };
 
     // Actually run the resolver.
@@ -238,8 +232,7 @@ export const instrumentSchema = (schema) => {
   addSchemaLevelResolveFunction(schema, (root, args, ctx, info) => {
     const opticsContext = ctx.opticsContext;
     if (opticsContext) {
-      opticsContext.info = info;
-      reportRequestStart(opticsContext);
+      reportRequestStart(opticsContext, info, ctx);
     }
     return root;
   });
@@ -260,7 +253,9 @@ export const newContext = (req, agent) => {
   let context = req._opticsContext;
   if (!context) {
     // This shouldn't happen. The middleware is supposed to have
-    // already added the _opticsContext field.
+    // already added the _opticsContext field. We make a new context
+    // as a safety belt here. It may not work, but at least it won't
+    // crash.
     context = {};
   }
   context.resolverCalls = [];
