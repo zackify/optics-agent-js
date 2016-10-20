@@ -6,7 +6,7 @@ import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
 import { reportRequestStart, reportRequestEnd, reportResolver } from './Report';
 
-var onFinished = require('on-finished');
+const onFinished = require('on-finished');
 
 // //////// Request Wrapping ////////
 
@@ -27,7 +27,7 @@ var onFinished = require('on-finished');
 const preRequest = (req) => {
   const context = {
     startWallTime: +new Date(),
-    startHrTime: process.hrtime()
+    startHrTime: process.hrtime(),
   };
   req._opticsContext = context;  // eslint-disable-line no-param-reassign
 };
@@ -46,7 +46,7 @@ const postRequest = (req) => {
 
 export const opticsMiddleware = (req, res, next) => {
   preRequest(req);
-  onFinished(res, (err, _res) => {
+  onFinished(res, (_err, _res) => {
     postRequest(req);
   });
 
