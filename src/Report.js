@@ -366,30 +366,31 @@ export const sendSchema = (agent, schema) => {
 
 // //////// Incoming Data ////////
 
-// Called once per resolver function execution.
-export const reportResolver = (context, info, { typeName, fieldName }, nanos) => {
-  const agent = context.agent;
-  const query = agent.normalizeQuery(info);
-  const res = agent.pendingResults;
-
-  const fObj = res &&
-          res[query] &&
-          res[query].perField &&
-          res[query].perField[typeName] &&
-          res[query].perField[typeName][fieldName];
-  if (!fObj) {
-    // This happens when a report is sent while a query is running.
-    // When this happens, we do not record the rest of the query's resolvers.
-    // See: https://github.com/apollostack/optics-agent-js/issues/4
+// Called once per query at query start time by graphql-js.
+export const reportRequestStart = (context, queryInfo, queryContext) => {
+  if (!context || !queryInfo || !context.agent) {
+    // Happens when non-graphql requests come through.
     return;
   }
-  addLatencyToBuckets(fObj.latencyBuckets, nanos);
+  // stash info object for later.
+  context.info = queryInfo; // eslint-disable-line no-param-reassign
+  context.queryContext = queryContext; // eslint-disable-line no-param-reassign
+
+  // XXX XXX batch detection goes here.
 };
 
+export const reportTrace = (agent, context) => {
+  // For now just send every trace immediately. We might want to add
+  // batching here at some point.
+  //
+  // Send in its own function on the event loop to minimize impact on
+  // response times.
+  setImmediate(() => sendTrace(agent, context));
+};
 
-// Called once per query at query start time by graphql-js.
-export const reportRequestStart = (context) => {
-  const req = context.req;
+// called once per query by the middleware when the request ends.
+export const reportRequestEnd = (req) => {
+  const context = req._opticsContext;
   if (!context || !context.info || !context.agent) {
     // Happens when non-graphql requests come through.
     return;
@@ -398,9 +399,10 @@ export const reportRequestStart = (context) => {
   const agent = context.agent;
 
   try {
-    const query = agent.normalizeQuery(info);
-    const { client_name } = agent.normalizeVersion(req);
+    // XXX batch detection here. iterate over a list of queries.
 
+    const query = agent.normalizeQuery(info);
+    const { client_name, client_version } = agent.normalizeVersion(req);
     const res = agent.pendingResults;
 
 
@@ -414,7 +416,6 @@ export const reportRequestStart = (context) => {
     }
 
     // fill out per field if we haven't already for this query shape.
-    // XXX move into if statement above?
     const perField = res[query].perField;
     if (Object.keys(perField).length === 0) {
       const typeInfo = new TypeInfo(agent.schema);
@@ -442,50 +443,9 @@ export const reportRequestStart = (context) => {
         perVersion: {},
       };
     }
-  } catch (e) {
-    // XXX https://github.com/apollostack/optics-agent-js/issues/17
-    console.log('EEE', e);  // eslint-disable-line no-console
-  }
-};
 
-export const reportTrace = (agent, context) => {
-  // For now just send every trace immediately. We might want to add
-  // batching here at some point.
-  //
-  // Send in its own function on the event loop to minimize impact on
-  // response times.
-  setImmediate(() => sendTrace(agent, context));
-};
-
-// called once per query by the middleware when the request ends.
-export const reportRequestEnd = (req) => {
-  const context = req._opticsContext;
-  if (!context || !context.info || !context.agent) {
-    // Happens when non-graphql requests come through.
-    return;
-  }
-  const info = context.info;
-  const agent = context.agent;
-
-  try {
-    const query = agent.normalizeQuery(info);
-    const { client_name, client_version } = agent.normalizeVersion(req);
-    const res = agent.pendingResults;
-
-    let clientObj = (
-      res[query] && res[query].perClient && res[query].perClient[client_name]);
-
-    // XXX XXX are we double counting? straighten out what happens to
-    // queries over the request boundary.
-    // Related: https://github.com/apollostack/optics-agent-js/issues/16
-    //
-    // This happens when the report was sent while the query was
-    // running. If that happens, just re-init the structure by
-    // re-reporting.
-    reportRequestStart(context);
-
-    // should be fixed now.
-    clientObj = (
+    // now that we've initialized, this should always be set.
+    const clientObj = (
       res[query] && res[query].perClient && res[query].perClient[client_name]);
 
     if (!clientObj) {
@@ -505,13 +465,37 @@ export const reportRequestEnd = (req) => {
       reportTrace(agent, context);
     }
 
+    // add query latency to buckets
     addLatencyToBuckets(clientObj.latencyBuckets, nanos);
 
+    // add per-client version count to buckets
     const perVersion = clientObj.perVersion;
     if (!perVersion[client_version]) {
       perVersion[client_version] = 0;
     }
     perVersion[client_version] += 1;
+
+    // add resolver timing to latency buckets
+    (context.resolverCalls || []).forEach((resolverReport) => {
+      const { typeName, fieldName } = resolverReport.fieldInfo;
+      if (resolverReport.endOffset && resolverReport.startOffset) {
+        const resolverNanos =
+                ((resolverReport.endOffset[0] * 1e9) +
+                 resolverReport.endOffset[1]) - (
+                   (resolverReport.startOffset[0] * 1e9) +
+                     resolverReport.startOffset[1]);
+        const fObj = res &&
+                res[query] &&
+                res[query].perField &&
+                res[query].perField[typeName] &&
+                res[query].perField[typeName][fieldName];
+        if (!fObj) {
+          // XXX when could this happen now?
+          return;
+        }
+        addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
+      }
+    });
   } catch (e) {
     // XXX https://github.com/apollostack/optics-agent-js/issues/17
     console.log('EEE', e);  // eslint-disable-line no-console
