@@ -87,7 +87,7 @@ export const instrumentHapiServer = (server) => {
 // Here we wrap resolver functions. The wrapped resolver notes start
 // and end times, resolvers that return null/undefined, and
 // errors. Note that a resolver is not considered finished until all
-// promises it returns (if any) have completed.
+// Promises it returns (if any) have completed.
 
 // This is applied to each resolver in the schema by instrumentSchema
 // below.
@@ -102,10 +102,11 @@ export const decorateField = (fn, fieldInfo) => {
       resolverInfo,
       resolverContext: ctx,
     };
-    // save the report object for when we want to sent query traces.
-    opticsContext && opticsContext.resolverCalls.push(resolverReport);
+    // save the report object for when we want to send query traces and to
+    // aggregate its statistics at the end of the request.
+    opticsContext.resolverCalls.push(resolverReport);
 
-    // Call this when the resolver and all the promisises it returns
+    // Call this when the resolver and all the Promises it returns
     // (if any) are complete.
     const finishRun = () => {
       // note end time.
@@ -127,19 +128,20 @@ export const decorateField = (fn, fieldInfo) => {
     // Now process the results of the resolver.
     //
     // Resolver can return any of: null, undefined, string, number,
-    // array[thing], or promise[thing].
-    // For primatives and arrays of primatives, fire the report immediately.
-    // For promises, fire when the promise returns.
-    // For arrays containing promises, fire when the last promise returns.
+    // array[thing], or Promise[thing].
+    // For primitives and arrays of primitives, fire the report immediately.
+    // For Promises, fire when the Promise returns.
+    // For arrays containing Promises, fire when the last Promise returns.
     //
-    // Wrap in try-catch so bugs in optics-agent are less like to break an app.
+    // Wrap in try-catch so bugs in optics-agent are less likely to break an
+    // app.
     try {
       if (result === null) {
         resolverReport.resultNull = true;
       } else if (typeof result === 'undefined') {
         resolverReport.resultUndefined = true;
       } else if (typeof result.then === 'function') {
-        // single promise
+        // single Promise
         result.then((res) => {
           finishRun();
           return res;
@@ -153,14 +155,14 @@ export const decorateField = (fn, fieldInfo) => {
       } else if (Array.isArray(result)) {
         // array
 
-        // collect the promises in the array, if any.
+        // collect the Promises in the array, if any.
         const promises = [];
         result.forEach((value) => {
           if (value && typeof value.then === 'function') {
             promises.push(value);
           }
         });
-        // if there are promises in the array, fire when the are all done.
+        // if there are Promises in the array, fire when the are all done.
         if (promises.length > 0) {
           Promise.all(promises).then(() => {
             finishRun();
@@ -176,7 +178,7 @@ export const decorateField = (fn, fieldInfo) => {
         // primitive type. do nothing special, just default return.
       }
 
-      // default return for non-promise answers
+      // default return for non-Promise answers
       finishRun();
       return result;
     } catch (e) {

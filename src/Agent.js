@@ -29,6 +29,8 @@ export default class Agent {
       endpointUrl, reportIntervalMs, printReports,
       reportTraces, reportVariables,
     } = options || {};
+    // XXX We don't actually intend for these fields to be part of a public
+    //     stable API. https://github.com/apollostack/optics-agent-js/issues/51
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
     // XXX actually use debugFn
     this.debugFn = debugFn || console.log; // eslint-disable-line no-console
@@ -47,9 +49,9 @@ export default class Agent {
 
     // Data we've collected so far this report period.
     this.pendingResults = {};
-    // The wall clock time for the begining of the current report period.
+    // The wall clock time for the beginning of the current report period.
     this.reportStartTime = +new Date();
-    // The HR clock time for the begining of the current report
+    // The HR clock time for the beginning of the current report
     // period. We record this so we can get an accurate duration for
     // the report even when the wall clock shifts or drifts.
     this.reportStartHrTime = process.hrtime();
@@ -57,6 +59,7 @@ export default class Agent {
     // Interval to send the reports. Per
     // https://github.com/apollostack/optics-agent-js/issues/4 we may
     // want to make this more complicated than just setInterval.
+    // XXX there's no way to stop this interval (eg, for tests)
     this.reportTimer = setInterval(() => { this.sendReport(); },
                                    this.reportIntervalMs);
   }
@@ -79,6 +82,8 @@ export default class Agent {
     return newContext(req, this);
   }
 
+  // XXX This is not part of the public API.
+  //     https://github.com/apollostack/optics-agent-js/issues/51
   sendReport() {
     // copy current report state and reset pending state for the next
     // report.

@@ -60,6 +60,18 @@ export const getTypesFromSchema = (schema) => {
   return ret;
 };
 
+// Converts an hrtime array (as returned from process.hrtime) to nanoseconds.
+//
+// ONLY CALL THIS ON VALUES REPRESENTING DELTAS, NOT ON THE RAW RETURN VALUE
+// FROM process.hrtime() WITH NO ARGUMENTS.
+//
+// The entire point of the hrtime data structure is that the JavaScript Number
+// type can't represent all int64 values without loss of precision:
+// Number.MAX_SAFE_INTEGER nanoseconds is about 104 days. Calling this function
+// on a duration that represents a value less than 104 days is fine. Calling
+// this function on an absolute time (which is generally roughly time since
+// system boot) is not a good idea.
+const durationHrTimeToNanos = hrtime => ((hrtime[0] * 1e9) + hrtime[1]);
 
 // //////// Sending Data ////////
 
@@ -111,7 +123,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
       { seconds: (endTime / 1000), nanos: (endTime % 1000) * 1e6 });
     report.end_time = new Timestamp(
       { seconds: (startTime / 1000), nanos: (startTime % 1000) * 1e6 });
-    report.realtime_duration = (durationHr[0] * 1e9) + durationHr[1];
+    report.realtime_duration = durationHrTimeToNanos(durationHr);
 
     report.type = getTypesFromSchema(agent.schema);
 
@@ -186,8 +198,7 @@ export const sendTrace = (agent, context) => {
     trace.end_time = new Timestamp(
       { seconds: (context.endWallTime / 1000),
         nanos: (context.endWallTime % 1000) * 1e6 });
-    trace.duration_ns = (context.durationHrTime[0] * 1e9)
-      + context.durationHrTime[1];
+    trace.duration_ns = durationHrTimeToNanos(context.durationHrTime);
 
     trace.signature = agent.normalizeQuery(info);
 
@@ -219,8 +230,8 @@ export const sendTrace = (agent, context) => {
       const n = new Trace.Node();
       n.field_name = `${rep.fieldInfo.typeName}.${rep.fieldInfo.fieldName}`;
       n.type = printType(rep.resolverInfo.returnType);
-      n.start_time = (rep.startOffset[0] * 1e9) + rep.startOffset[1];
-      n.end_time = (rep.endOffset[0] * 1e9) + rep.endOffset[1];
+      n.start_time = durationHrTimeToNanos(rep.startOffset);
+      n.end_time = durationHrTimeToNanos(rep.endOffset);
       // XXX
       return n;
     });
@@ -454,8 +465,7 @@ export const reportRequestEnd = (req) => {
       return;
     }
 
-    const nanos = ((context.durationHrTime[0] * 1e9) +
-                   context.durationHrTime[1]);
+    const nanos = durationHrTimeToNanos(context.durationHrTime);
 
     // check to see if we've sent a trace for this bucket yet this
     // report period. if we haven't, send one now.
@@ -480,10 +490,8 @@ export const reportRequestEnd = (req) => {
       const { typeName, fieldName } = resolverReport.fieldInfo;
       if (resolverReport.endOffset && resolverReport.startOffset) {
         const resolverNanos =
-                ((resolverReport.endOffset[0] * 1e9) +
-                 resolverReport.endOffset[1]) - (
-                   (resolverReport.startOffset[0] * 1e9) +
-                     resolverReport.startOffset[1]);
+                durationHrTimeToNanos(resolverReport.endOffset) -
+                durationHrTimeToNanos(resolverReport.startOffset);
         const fObj = res &&
                 res[query] &&
                 res[query].perField &&
