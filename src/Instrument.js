@@ -6,6 +6,7 @@ import { forEachField, addSchemaLevelResolveFunction } from 'graphql-tools';
 
 import { reportRequestStart, reportRequestEnd } from './Report';
 
+const onFinished = require('on-finished');
 
 // //////// Request Wrapping ////////
 
@@ -23,24 +24,40 @@ import { reportRequestStart, reportRequestEnd } from './Report';
 // server. Supporting new web servers besides Express and HAPI should
 // be contained here.
 
-
-export const opticsMiddleware = (req, res, next) => {
+const preRequest = (req) => {
   const context = {
     startWallTime: +new Date(),
     startHrTime: process.hrtime(),
-    oldResEnd: res.end,
   };
   req._opticsContext = context;  // eslint-disable-line no-param-reassign
+};
 
-  res.end = (...args) => {  // eslint-disable-line no-param-reassign
+const postRequest = (req) => {
+  const context = req._opticsContext;
+  // context should always be set, but double check just in case.
+  //
+  // XXX consider error reporting. We might not want to `console.log`
+  // here, as it is potentially in a critical path and getting called
+  // a lot. maybe a `warnOnce` function that prints the first time it
+  // happens and not repeatedly?
+  //
+  // See also:
+  // https://github.com/apollostack/optics-agent-js/issues/6
+  if (context) {
     context.durationHrTime = process.hrtime(context.startHrTime);
     context.endWallTime = +new Date();
-    context.oldResEnd && context.oldResEnd.apply(res, args);
 
     // put reporting later in the event loop after I/O, so hopefully we
     // don't impact latency as much.
     setImmediate(() => { reportRequestEnd(req); });
-  };
+  }
+};
+
+export const opticsMiddleware = (req, res, next) => {
+  preRequest(req);
+  onFinished(res, (_err, _res) => {
+    postRequest(req);
+  });
 
   return next();
 };
@@ -51,19 +68,14 @@ export const instrumentHapiServer = (server) => {
       type: 'onPreHandler',
       method: (request, reply) => {
         const req = request.raw.req;
-        const res = {};
-        opticsMiddleware(req, res, () => {});
-        req._opticsRes = res;
+        preRequest(req);
         return reply.continue();
       },
     }, {
       type: 'onPostHandler',
       method: (request, reply) => {
         const req = request.raw.req;
-        const res = req._opticsRes;
-        if (res && res.end) {
-          res.end();
-        }
+        postRequest(req);
         return reply.continue();
       },
     }]);
