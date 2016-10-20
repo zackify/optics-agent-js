@@ -34,6 +34,15 @@ const preRequest = (req) => {
 
 const postRequest = (req) => {
   const context = req._opticsContext;
+  // context should always be set, but double check just in case.
+  //
+  // XXX consider error reporting. We might not want to `console.log`
+  // here, as it is potentially in a critical path and getting called
+  // a lot. maybe a `warnOnce` function that prints the first time it
+  // happens and not repeatedly?
+  //
+  // See also:
+  // https://github.com/apollostack/optics-agent-js/issues/6
   if (context) {
     context.durationHrTime = process.hrtime(context.startHrTime);
     context.endWallTime = +new Date();
