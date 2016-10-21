@@ -394,14 +394,25 @@ export const reportRequestStart = (context, queryInfo, queryContext) => {
   // `context` object passed to the query, and use these to determine
   // which resolver runs correspond to which query.
   //
-  // Store a list of { info, context } objects. This is a contract
-  // between reportRequestStart and reportRequestEnd.
+  // Store as a Map of `context` => [ { info, context, resolvers } ] objects.
+  //
+  // This is a contract between reportRequestStart and reportRequestEnd.
+  //
+  // Note: we use a Map instead of simple array to avoid doing O(N^2)
+  // work on a batch with a lot of queries, each with a separate
+  // context object. We store a list in each map item in case the
+  // caller does not allocate a new context object per query and we
+  // see a duplicate context object.
   if (!context.queries) {
-    context.queries = []; // eslint-disable-line no-param-reassign
+    context.queries = new Map(); // eslint-disable-line no-param-reassign
   }
-  context.queries.push({
+  if (!context.queries.has(queryContext)) {
+    context.queries.set(queryContext, []);
+  }
+  context.queries.get(queryContext).push({
     info: queryInfo,
     context: queryContext,
+    resolvers: [],
   });
 };
 
@@ -433,10 +444,10 @@ export const reportRequestEnd = (req) => {
     // time and during resolver runs.
     //
     // Implementations that do batching of GraphQL requests (such as
-    // apollo-server) should use a seperate `context` object for each
+    // apollo-server) should use a separate `context` object for each
     // request in the batch. Shallow cloning is sufficient.
     //
-    // For backwards compatibitility with older versions of
+    // For backwards compatibility with older versions of
     // apollo-server, and potentially with other graphql integrations,
     // we also look at the `operation` object. This will be different
     // for each query in the batch unless the application is using
@@ -452,12 +463,8 @@ export const reportRequestEnd = (req) => {
         return;
       }
 
-      for (const queryObj of queries) {
-        if (resolverReport.resolverInfo.operation === queryObj.info.operation &&
-            resolverReport.resolverContext === queryObj.context) {
-          if (!queryObj.resolvers) {
-            queryObj.resolvers = [];
-          }
+      for (const queryObj of (queries.get(resolverReport.resolverContext) || [])) {
+        if (resolverReport.resolverInfo.operation === queryObj.info.operation) {
           queryObj.resolvers.push(resolverReport);
           break;
         }
@@ -466,7 +473,9 @@ export const reportRequestEnd = (req) => {
 
     // Iterate over each query in this request and aggregate its
     // timing and resolvers.
-    queries.forEach(({ info, resolvers: queryResolvers = [] }) => {
+    const flatQueries = [];
+    queries.forEach(qList => qList.forEach(qObj => flatQueries.push(qObj)));
+    flatQueries.forEach(({ info, resolvers: queryResolvers = [] }) => {
       const query = agent.normalizeQuery(info);
       const { client_name, client_version } = agent.normalizeVersion(req);
       const res = agent.pendingResults;
