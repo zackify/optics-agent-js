@@ -1,7 +1,7 @@
 // This file contains helper functions to format or normalize data.
 
 import { GraphQLList, GraphQLNonNull } from 'graphql/type';
-import { separateOperations } from './separateOperations';
+import { separateOperations, opName } from './separateOperations';
 
 import { print } from './normalizedPrinter';
 
@@ -20,8 +20,7 @@ export const normalizeQuery = (info) => {
     ],
   };
 
-  const prunedAST = separateOperations(doc)[
-    (info.operation.name && info.operation.name.value) || ''];
+  const prunedAST = separateOperations(doc)[opName(info.operation)];
 
   return print(prunedAST);
 };
@@ -53,6 +52,9 @@ export const normalizeVersion = _req => (
 
 // Takes a duration in nanoseconds and returns a integer between 0 and
 // 255 (inclusive) to be used as an array offset in a list of buckets.
+//
+// See https://github.com/apollostack/optics-agent/blob/master/docs/histograms.md
+// for details of the algorithm.
 export const latencyBucket = (nanos) => {
   const micros = nanos / 1000;
 

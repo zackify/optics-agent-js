@@ -1,7 +1,13 @@
 /* eslint-disable */
-// This code taken and adapted from:
+// This code taken and modified from:
 // https://raw.githubusercontent.com/graphql/graphql-js/3142d872af011daec8be83c3a88d014f47ee0c64/src/language/printer.js
 // according to the term of the BSD-style license provided there and copied below
+//
+// This file has been modified to print a "normalized" version of the
+// query instead of the full version.
+//
+// See https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
+
 /**
  *  Copyright (c) 2015, Facebook, Inc.
  *  All rights reserved.
@@ -67,7 +73,7 @@ const printDocASTReducer = {
   OperationDefinition(node) {
     const op = node.operation;
     const name = node.name;
-    const varDefs = wrap('(', join(node.variableDefinitions && node.variableDefinitions.sort(), ','), ')');
+    const varDefs = wrap('(', join(node.variableDefinitions && node.variableDefinitions.slice().sort(), ','), ')');
     const directives = join(node.directives, ' ');
     const selectionSet = node.selectionSet;
     // Anonymous queries with no directives or variable definitions can use
@@ -80,11 +86,11 @@ const printDocASTReducer = {
   VariableDefinition: ({ variable, type, defaultValue }) =>
     variable + ':' + type + wrap(' = ', defaultValue),
 
-  SelectionSet: ({ selections }) => block(selections && selections.sort(compareFieldNames)),
+  SelectionSet: ({ selections }) => block(selections && selections.slice().sort(compareFieldNames)),
 
   Field: ({ alias, name, arguments: args, directives, selectionSet }) =>
     join([
-      /* wrap('', alias, ':') + */ name + wrap('(', join(args && args.sort(), ', '), ')'),
+      /* wrap('', alias, ':') + */ name + wrap('(', join(args && args.slice().sort(), ', '), ')'),
       join(directives, ' '),
       selectionSet
     ], ' '),
@@ -94,19 +100,19 @@ const printDocASTReducer = {
   // Fragments
 
   FragmentSpread: ({ name, directives }) =>
-    '...' + name + wrap(' ', join(directives && directives.sort(), ' ')),
+    '...' + name + wrap(' ', join(directives && directives.slice().sort(), ' ')),
 
   InlineFragment: ({ typeCondition, directives, selectionSet }) =>
     join([
       '...',
       wrap('on ', typeCondition),
-      join(directives && directives.sort(), ' '),
+      join(directives && directives.slice().sort(), ' '),
       selectionSet
     ], ' '),
 
   FragmentDefinition: ({ name, typeCondition, directives, selectionSet }) =>
     `fragment ${name} on ${typeCondition} ` +
-    wrap('', join(directives && directives.sort(), ' '), ' ') +
+    wrap('', join(directives && directives.slice().sort(), ' '), ' ') +
     selectionSet,
 
   // Value
@@ -123,7 +129,7 @@ const printDocASTReducer = {
   // Directive
 
   Directive: ({ name, arguments: args }) =>
-    '@' + name + wrap('(', join(args && args.sort(), ','), ')'),
+    '@' + name + wrap('(', join(args && args.slice().sort(), ','), ')'),
 
   // Type
 

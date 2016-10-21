@@ -1,10 +1,15 @@
 /* eslint-disable */
-// This code taken and adapted from:
+// This code is taken from:
 // https://raw.githubusercontent.com/graphql/graphql-js/c614f759df5e436b1092af53811311b254ebb189/src/utilities/separateOperations.js
 // according to the term of the BSD-style license provided there and copied below
-
+//
 // This is copied from graphql-js 0.7 so that optics can rely on it
 // being available even when used with a graphql-js 0.6 server.
+//
+// No substantial changes have been made -- it has been modified to
+// compile as ES6 and export additional symbols, but should be
+// functionally equivalent to the original.
+
 
 /* @flow */
 /**
@@ -73,7 +78,7 @@ export function separateOperations(
 }
 
 // Provides the empty string for anonymous operations.
-function opName(operation) {
+export function opName(operation) {
   return operation.name ? operation.name.value : '';
 }
 
