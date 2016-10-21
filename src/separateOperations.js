@@ -78,7 +78,7 @@ export function separateOperations(
 }
 
 // Provides the empty string for anonymous operations.
-function opName(operation) {
+export function opName(operation) {
   return operation.name ? operation.name.value : '';
 }
 

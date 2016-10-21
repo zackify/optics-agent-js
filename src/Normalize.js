@@ -1,7 +1,7 @@
 // This file contains helper functions to format or normalize data.
 
 import { GraphQLList, GraphQLNonNull } from 'graphql/type';
-import { separateOperations } from './separateOperations';
+import { separateOperations, opName } from './separateOperations';
 
 import { print } from './normalizedPrinter';
 
@@ -20,8 +20,7 @@ export const normalizeQuery = (info) => {
     ],
   };
 
-  const prunedAST = separateOperations(doc)[
-    (info.operation.name && info.operation.name.value) || ''];
+  const prunedAST = separateOperations(doc)[opName(info.operation)];
 
   return print(prunedAST);
 };
