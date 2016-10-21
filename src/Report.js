@@ -411,7 +411,6 @@ export const reportRequestStart = (context, queryInfo, queryContext) => {
   }
   context.queries.get(queryContext).push({
     info: queryInfo,
-    context: queryContext,
     resolvers: [],
   });
 };
