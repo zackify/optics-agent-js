@@ -473,102 +473,102 @@ export const reportRequestEnd = (req) => {
 
     // Iterate over each query in this request and aggregate its
     // timing and resolvers.
-    const flatQueries = [];
-    queries.forEach(qList => qList.forEach(qObj => flatQueries.push(qObj)));
-    flatQueries.forEach(({ info, resolvers: queryResolvers = [] }) => {
-      const query = agent.normalizeQuery(info);
-      const { client_name, client_version } = agent.normalizeVersion(req);
-      const res = agent.pendingResults;
+    queries.forEach((queryList) => {
+      queryList.forEach(({ info, resolvers: queryResolvers = [] }) => {
+        const query = agent.normalizeQuery(info);
+        const { client_name, client_version } = agent.normalizeVersion(req);
+        const res = agent.pendingResults;
 
-      // Initialize per-query state in the report if we're the first of
-      // this query shape to come in this report period.
-      if (!res[query]) {
-        res[query] = {
-          perClient: {},
-          perField: {},
-        };
-      }
+        // Initialize per-query state in the report if we're the first of
+        // this query shape to come in this report period.
+        if (!res[query]) {
+          res[query] = {
+            perClient: {},
+            perField: {},
+          };
+        }
 
-      // fill out per field if we haven't already for this query shape.
-      const perField = res[query].perField;
-      if (Object.keys(perField).length === 0) {
-        const typeInfo = new TypeInfo(agent.schema);
-        visit(info.operation, visitWithTypeInfo(typeInfo, {
-          Field: () => {
-            const parentType = typeInfo.getParentType().name;
-            if (!perField[parentType]) {
-              perField[parentType] = {};
+        // fill out per field if we haven't already for this query shape.
+        const perField = res[query].perField;
+        if (Object.keys(perField).length === 0) {
+          const typeInfo = new TypeInfo(agent.schema);
+          visit(info.operation, visitWithTypeInfo(typeInfo, {
+            Field: () => {
+              const parentType = typeInfo.getParentType().name;
+              if (!perField[parentType]) {
+                perField[parentType] = {};
+              }
+              const fieldName = typeInfo.getFieldDef().name;
+              perField[parentType][fieldName] = {
+                returnType: printType(typeInfo.getType()),
+                latencyBuckets: newLatencyBuckets(),
+              };
+            },
+          }));
+        }
+
+        // initialize latency buckets if this is the first time we've had
+        // a query from this client type in this period.
+        const perClient = res[query].perClient;
+        if (!perClient[client_name]) {
+          perClient[client_name] = {
+            latencyBuckets: newLatencyBuckets(),
+            perVersion: {},
+          };
+        }
+
+        // now that we've initialized, this should always be set.
+        const clientObj = (
+          res[query] && res[query].perClient && res[query].perClient[client_name]);
+
+        if (!clientObj) {
+          // XXX huh?
+          console.log('CC2', query);  // eslint-disable-line no-console
+          return;
+        }
+
+        const nanos = durationHrTimeToNanos(context.durationHrTime);
+
+        // add query latency to buckets
+        addLatencyToBuckets(clientObj.latencyBuckets, nanos);
+
+        // add per-client version count to buckets
+        const perVersion = clientObj.perVersion;
+        if (!perVersion[client_version]) {
+          perVersion[client_version] = 0;
+        }
+        perVersion[client_version] += 1;
+
+        // now iterate over our resolvers and add them to the latency buckets.
+        queryResolvers.forEach((resolverReport) => {
+          const { typeName, fieldName } = resolverReport.fieldInfo;
+          if (resolverReport.endOffset && resolverReport.startOffset) {
+            const resolverNanos =
+                    durationHrTimeToNanos(resolverReport.endOffset) -
+                    durationHrTimeToNanos(resolverReport.startOffset);
+            const fObj = res &&
+                    res[query] &&
+                    res[query].perField &&
+                    res[query].perField[typeName] &&
+                    res[query].perField[typeName][fieldName];
+            if (!fObj) {
+              // XXX when could this happen now?
+              return;
             }
-            const fieldName = typeInfo.getFieldDef().name;
-            perField[parentType][fieldName] = {
-              returnType: printType(typeInfo.getType()),
-              latencyBuckets: newLatencyBuckets(),
-            };
-          },
-        }));
-      }
-
-      // initialize latency buckets if this is the first time we've had
-      // a query from this client type in this period.
-      const perClient = res[query].perClient;
-      if (!perClient[client_name]) {
-        perClient[client_name] = {
-          latencyBuckets: newLatencyBuckets(),
-          perVersion: {},
-        };
-      }
-
-      // now that we've initialized, this should always be set.
-      const clientObj = (
-        res[query] && res[query].perClient && res[query].perClient[client_name]);
-
-      if (!clientObj) {
-        // XXX huh?
-        console.log('CC2', query);  // eslint-disable-line no-console
-        return;
-      }
-
-      const nanos = durationHrTimeToNanos(context.durationHrTime);
-
-      // add query latency to buckets
-      addLatencyToBuckets(clientObj.latencyBuckets, nanos);
-
-      // add per-client version count to buckets
-      const perVersion = clientObj.perVersion;
-      if (!perVersion[client_version]) {
-        perVersion[client_version] = 0;
-      }
-      perVersion[client_version] += 1;
-
-      // now iterate over our resolvers and add them to the latency buckets.
-      queryResolvers.forEach((resolverReport) => {
-        const { typeName, fieldName } = resolverReport.fieldInfo;
-        if (resolverReport.endOffset && resolverReport.startOffset) {
-          const resolverNanos =
-                  durationHrTimeToNanos(resolverReport.endOffset) -
-                  durationHrTimeToNanos(resolverReport.startOffset);
-          const fObj = res &&
-                  res[query] &&
-                  res[query].perField &&
-                  res[query].perField[typeName] &&
-                  res[query].perField[typeName][fieldName];
-          if (!fObj) {
-            // XXX when could this happen now?
-            return;
+            addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
           }
-          addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
+        });
+
+
+        // check to see if we've sent a trace for this bucket yet this
+        // report period. if we haven't (ie, if we're the only query in
+        // this bucket), send one now.
+        const bucket = latencyBucket(nanos);
+        const numSoFar = clientObj.latencyBuckets[bucket];
+        if (numSoFar === 1 && agent.reportTraces) {
+          reportTrace(agent, context, info, queryResolvers);
         }
       });
-
-
-      // check to see if we've sent a trace for this bucket yet this
-      // report period. if we haven't (ie, if we're the only query in
-      // this bucket), send one now.
-      const bucket = latencyBucket(nanos);
-      const numSoFar = clientObj.latencyBuckets[bucket];
-      if (numSoFar === 1 && agent.reportTraces) {
-        reportTrace(agent, context, info, queryResolvers);
-      }
     });
   } catch (e) {
     // XXX https://github.com/apollostack/optics-agent-js/issues/17
