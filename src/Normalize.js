@@ -53,6 +53,9 @@ export const normalizeVersion = _req => (
 
 // Takes a duration in nanoseconds and returns a integer between 0 and
 // 255 (inclusive) to be used as an array offset in a list of buckets.
+//
+// See https://github.com/apollostack/optics-agent/blob/master/docs/histograms.md
+// for details of the algorithm.
 export const latencyBucket = (nanos) => {
   const micros = nanos / 1000;
 

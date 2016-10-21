@@ -1,7 +1,13 @@
 /* eslint-disable */
-// This code taken and adapted from:
+// This code taken and modified from:
 // https://raw.githubusercontent.com/graphql/graphql-js/3142d872af011daec8be83c3a88d014f47ee0c64/src/language/printer.js
 // according to the term of the BSD-style license provided there and copied below
+//
+// This file has been modified to print a "normalized" version of the
+// query instead of the full version.
+//
+// See https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
+
 /**
  *  Copyright (c) 2015, Facebook, Inc.
  *  All rights reserved.
