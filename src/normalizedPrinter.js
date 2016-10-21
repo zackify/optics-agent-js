@@ -73,7 +73,7 @@ const printDocASTReducer = {
   OperationDefinition(node) {
     const op = node.operation;
     const name = node.name;
-    const varDefs = wrap('(', join(node.variableDefinitions && node.variableDefinitions.sort(), ','), ')');
+    const varDefs = wrap('(', join(node.variableDefinitions && node.variableDefinitions.slice().sort(), ','), ')');
     const directives = join(node.directives, ' ');
     const selectionSet = node.selectionSet;
     // Anonymous queries with no directives or variable definitions can use
@@ -86,11 +86,11 @@ const printDocASTReducer = {
   VariableDefinition: ({ variable, type, defaultValue }) =>
     variable + ':' + type + wrap(' = ', defaultValue),
 
-  SelectionSet: ({ selections }) => block(selections && selections.sort(compareFieldNames)),
+  SelectionSet: ({ selections }) => block(selections && selections.slice().sort(compareFieldNames)),
 
   Field: ({ alias, name, arguments: args, directives, selectionSet }) =>
     join([
-      /* wrap('', alias, ':') + */ name + wrap('(', join(args && args.sort(), ', '), ')'),
+      /* wrap('', alias, ':') + */ name + wrap('(', join(args && args.slice().sort(), ', '), ')'),
       join(directives, ' '),
       selectionSet
     ], ' '),
@@ -100,19 +100,19 @@ const printDocASTReducer = {
   // Fragments
 
   FragmentSpread: ({ name, directives }) =>
-    '...' + name + wrap(' ', join(directives && directives.sort(), ' ')),
+    '...' + name + wrap(' ', join(directives && directives.slice().sort(), ' ')),
 
   InlineFragment: ({ typeCondition, directives, selectionSet }) =>
     join([
       '...',
       wrap('on ', typeCondition),
-      join(directives && directives.sort(), ' '),
+      join(directives && directives.slice().sort(), ' '),
       selectionSet
     ], ' '),
 
   FragmentDefinition: ({ name, typeCondition, directives, selectionSet }) =>
     `fragment ${name} on ${typeCondition} ` +
-    wrap('', join(directives && directives.sort(), ' '), ' ') +
+    wrap('', join(directives && directives.slice().sort(), ' '), ' ') +
     selectionSet,
 
   // Value
@@ -129,7 +129,7 @@ const printDocASTReducer = {
   // Directive
 
   Directive: ({ name, arguments: args }) =>
-    '@' + name + wrap('(', join(args && args.sort(), ','), ')'),
+    '@' + name + wrap('(', join(args && args.slice().sort(), ','), ')'),
 
   // Type
 
