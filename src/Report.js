@@ -92,9 +92,9 @@ export const sendMessage = (agent, path, message) => {
     // XXX add retry logic
     // XXX add separate flag for disable printing errors?
     if (err) {
-      console.log('Error trying to report to optics backend:', err.message);  // eslint-disable-line no-console
+      console.log('OPTICS Error trying to report to optics backend:', err.message);  // eslint-disable-line no-console
     } else if (res.statusCode < 200 || res.statusCode > 299) {
-      console.log('Backend error', res.statusCode, body);  // eslint-disable-line no-console
+      console.log('OPTICS Backend error', res.statusCode, body);  // eslint-disable-line no-console
     }
 
     if (agent.printReports) {
