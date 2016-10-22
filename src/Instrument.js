@@ -97,7 +97,18 @@ export const instrumentHapiServer = (server) => {
 export const decorateField = (fn, fieldInfo) => {
   const decoratedResolver = (p, a, ctx, resolverInfo) => {
     // setup context and note start time.
-    const opticsContext = ctx.opticsContext;
+    const opticsContext = ctx && ctx.opticsContext;
+
+    if (!opticsContext) {
+      // This happens when `instrumentSchema` was called, but
+      // `newContext` didn't get put in the graphql context correctly.
+      //
+      // XXX we should report this error somehow, but logging once per
+      // resolver is not good. Perhaps a "warn once" mechanism?
+
+      return fn(p, a, ctx, resolverInfo);
+    }
+
     const resolverReport = {
       startOffset: process.hrtime(opticsContext.startHrTime),
       fieldInfo,
