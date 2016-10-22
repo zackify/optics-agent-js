@@ -26,8 +26,10 @@ const onFinished = require('on-finished');
 
 const preRequest = (req) => {
   const context = {
+    req,
     startWallTime: +new Date(),
     startHrTime: process.hrtime(),
+    resolverCalls: [],
   };
   req._opticsContext = context;  // eslint-disable-line no-param-reassign
 };
@@ -266,14 +268,27 @@ export const instrumentSchema = (schema) => {
 export const newContext = (req, agent) => {
   let context = req._opticsContext;
   if (!context) {
-    // This shouldn't happen. The middleware is supposed to have
-    // already added the _opticsContext field. We make a new context
-    // as a safety belt here. It may not work, but at least it won't
-    // crash.
-    context = {};
+    // This happens if the middleware isn't run correctly.
+
+    // XXX this will print once per request! Maybe add a "warn once"
+    // feature to print only once.
+    agent.debugFn('Optics context not found. Make sure optics middleware is installed.');
+
+    // Fix things up by re-running the pre-request hook. We probably
+    // won't correctly send a report as the post-request hook
+    // probably won't fire, but this way optics code that assumes a
+    // context will run correctly.
+    preRequest(req);
+    context = req._opticsContext;
   }
-  context.resolverCalls = [];
+
+  // This does not really need to be set here. It could be set in
+  // preRequest, if we threaded agent through there. Once we do that,
+  // we could change the API to not require calling this as a function
+  // and instead just ask users to add `req.opticsContext` to their
+  // graphql context. See:
+  // https://github.com/apollostack/optics-agent-js/issues/46
   context.agent = agent;
-  context.req = req;
+
   return context;
 };
