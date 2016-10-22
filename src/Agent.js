@@ -44,6 +44,15 @@ export default class Agent {
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;
 
+    // Ensure we have an api key. If not, print and disable the agent.
+    if (!this.apiKey) {
+      this.debugFn(
+        'Optics agent disabled: no API key specified.',
+        'Set the apiKey option or set the OPTICS_API_KEY environment variable.'
+      );
+      this.disabled = true;
+      return;
+    }
 
     // Internal state.
 
@@ -65,20 +74,32 @@ export default class Agent {
   }
 
   instrumentSchema(schema) {
+    if (this.disabled) {
+      return schema;
+    }
     this.schema = instrumentSchema(schema, this);
     reportSchema(this, schema);
     return this.schema;
   }
 
   middleware() {
+    if (this.disabled) {
+      return ((_req, _res, next) => { next(); });
+    }
     return opticsMiddleware;
   }
 
   instrumentHapiServer(server) {
+    if (this.disabled) {
+      return;
+    }
     instrumentHapiServer(server);
   }
 
   context(req) {
+    if (this.disabled) {
+      return {};
+    }
     return newContext(req, this);
   }
 
