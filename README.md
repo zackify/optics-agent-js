@@ -59,17 +59,13 @@ Options include:
 
 * `reportVariables`: Boolean. Send the query variables along with traces. Defaults to true.
 
-* `normalizeVersion`: Function([http.IncomingMessage](https://nodejs.org/api/http.html#http_class_http_incomingmessage))⇒{client_name: String, client_version: String}. Called to determine the client platform and version for a request. You may want to override this to improve client detection, eg, if you have a custom user-agent for a mobile client.
+* `printReports`: Boolean. Print a JSON version of reports as they are sent. This may be useful for debugging. Defaults to false.
 
 * `normalizeQuery`: Function([GraphQLResolveInfo](http://graphql.org/graphql-js/type/#graphqlobjecttype))⇒String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
-
-* `debugFn`: Function(args). Called to print debugging messages. Defaults to `console.log`. To silence Optics if `console.log` is not OK in your environment, pass `debugFn: () => {}`.
 
 * `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or the `OPTICS_ENDPOINT_URL` environment variable if it is set. You shouldn't need to set this unless you are debugging.
 
 * `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
-
-* `printReports`: Boolean. Print a JSON version of reports as they are sent. This may be useful for debugging. Defaults to false.
 
 
 ### Instrument your schema
@@ -159,17 +155,17 @@ index 43ee586..2eb1845 100644
    };
  }));
 diff --git a/package.json b/package.json
-index 5c96682..6223cfa 100644
+index 98df047..b110fac 100644
 --- a/package.json
 +++ b/package.json
 @@ -52,6 +52,7 @@
-     "graphql-tools": "^0.7.0",
-     "knex": "^0.11.3",
-     "lodash": "^4.12.0",
-+    "optics-agent": "^0.0.26",
-     "passport": "^0.3.2",
-     "passport-github": "^1.1.0",
-     "request-promise": "^3.0.0",
+     "graphql-tools": "0.7.2",
+     "knex": "0.12.3",
+     "lodash": "4.16.4",
++    "optics-agent": "0.0.33",
+     "passport": "0.3.2",
+     "passport-github": "1.1.0",
+     "request-promise": "4.1.1",
 ```
 
 ## Advanced Usage
