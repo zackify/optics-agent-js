@@ -124,21 +124,22 @@ https://github.com/apollostack/GitHunt-API/compare/nim/optics-agent
 
 ```diff
 diff --git a/api/index.js b/api/index.js
-index 43ee586..2eb1845 100644
+index 43ee586..f1a27a6 100644
 --- a/api/index.js
 +++ b/api/index.js
-@@ -19,6 +19,10 @@ import { subscriptionManager } from './subscriptions';
+@@ -19,6 +19,11 @@ import { subscriptionManager } from './subscriptions';
 
  import schema from './schema';
 
 +import OpticsAgent from 'optics-agent';
++
 +OpticsAgent.instrumentSchema(schema);
 +
 +
  let PORT = 3010;
  if (process.env.PORT) {
    PORT = parseInt(process.env.PORT, 10) + 100;
-@@ -33,6 +37,7 @@ app.use(bodyParser.json());
+@@ -33,6 +38,7 @@ app.use(bodyParser.json());
 
  setUpGitHubLogin(app);
 
@@ -146,7 +147,7 @@ index 43ee586..2eb1845 100644
  app.use('/graphql', apolloExpress((req) => {
    // Get the query, the same way express-graphql does it
    // https://github.com/graphql/express-graphql/blob/3fa6e68582d6d933d37fa9e841da5d2aa39261cd/src/index.js#L257
-@@ -70,6 +75,7 @@ app.use('/graphql', apolloExpress((req) => {
+@@ -70,6 +76,7 @@ app.use('/graphql', apolloExpress((req) => {
        Users: new Users({ connector: gitHubConnector }),
        Entries: new Entries(),
        Comments: new Comments(),
