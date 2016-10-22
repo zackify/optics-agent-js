@@ -85,6 +85,10 @@ export default class Agent {
   // XXX This is not part of the public API.
   //     https://github.com/apollostack/optics-agent-js/issues/51
   sendReport() {
+    if (!this.schema) {
+      this.debugFn('Optics agent: schema not instrumented. Make sure `instrumentSchema` is called.');
+      return;
+    }
     // copy current report state and reset pending state for the next
     // report.
     const reportData = this.pendingResults;
