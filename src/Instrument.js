@@ -283,7 +283,7 @@ export const newContext = (req, agent) => {
 
     // XXX this will print once per request! Maybe add a "warn once"
     // feature to print only once.
-    agent.debugFn('Optics context not found. Make sure optics middleware is installed.');
+    agent.debugFn('Optics context not found. Make sure Optics middleware is installed.');
 
     // Fix things up by re-running the pre-request hook. We probably
     // won't correctly send a report as the post-request hook

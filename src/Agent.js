@@ -34,6 +34,19 @@ export default class Agent {
     this.apiKey = apiKey || process.env.OPTICS_API_KEY;
     // XXX actually use debugFn
     this.debugFn = debugFn || console.log; // eslint-disable-line no-console
+
+    // Ensure we have an api key. If not, print and disable the agent.
+    if (!this.apiKey) {
+      this.debugFn(
+        'Optics agent disabled: no API key specified.',
+        'Set the `apiKey` option to `configureAgent` or `new Agent`, ',
+        ' or set the `OPTICS_API_KEY` environment variable.'
+      );
+      this.disabled = true;
+      return;
+    }
+    this.disabled = false;
+
     this.normalizeVersion = normalizeVersion || defaultNV;
     this.normalizeQuery = normalizeQuery || defaultNQ;
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
@@ -43,16 +56,6 @@ export default class Agent {
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;
-
-    // Ensure we have an api key. If not, print and disable the agent.
-    if (!this.apiKey) {
-      this.debugFn(
-        'Optics agent disabled: no API key specified.',
-        'Set the apiKey option or set the OPTICS_API_KEY environment variable.'
-      );
-      this.disabled = true;
-      return;
-    }
 
     // Internal state.
 
@@ -107,7 +110,7 @@ export default class Agent {
   //     https://github.com/apollostack/optics-agent-js/issues/51
   sendReport() {
     if (!this.schema) {
-      this.debugFn('Optics agent: schema not instrumented. Make sure `instrumentSchema` is called.');
+      this.debugFn('Optics agent: schema not instrumented. Make sure to call `instrumentSchema`.');
       return;
     }
     // copy current report state and reset pending state for the next
