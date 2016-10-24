@@ -13,7 +13,7 @@ import { loadProto } from 'protobufjs-no-cli';
 //
 // XXX As noted in
 // https://github.com/apollostack/optics-agent-js/issues/55 simply
-// doing `readFileSync` may be the same performance as require as
+// doing `readFileSync` may be the same performance as require and
 // easier to implement than doing it at compile time.
 const protoBuilder = loadProto(`
 // reports 0.6.2016.10.11.1
