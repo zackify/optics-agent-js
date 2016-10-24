@@ -7,9 +7,14 @@
 import { loadProto } from 'protobufjs-no-cli';
 
 // Copied and pasted from https://github.com/apollostack/optics-agent
-// instead of using a seperate file so we can load w/o doing async I/O
+// instead of using a separate file so we can load w/o doing async I/O
 // at startup. This could be done with a babel plugin at compile time
 // instead.
+//
+// XXX As noted in
+// https://github.com/apollostack/optics-agent-js/issues/55 simply
+// doing `readFileSync` may be the same performance as require as
+// easier to implement than doing it at compile time.
 const protoBuilder = loadProto(`
 // reports 0.6.2016.10.11.1
 // from https://github.com/apollostack/optics-agent

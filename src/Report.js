@@ -30,6 +30,14 @@ import {
 // eslint-disable-next-line global-require
 const VERSION = `optics-agent-js ${require('../package.json').version}`;
 
+// Pre-compute the report header. It is the same for each message.
+const REPORT_HEADER = new ReportHeader({
+  hostname: os.hostname(),
+  agent_version: VERSION,
+  runtime_version: `node ${process.version}`,
+  // XXX not actually uname, but what node has easily.
+  uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
+});
 
 // //////// Helpers ////////
 
@@ -110,13 +118,7 @@ export const sendReport = (agent, reportData, startTime, endTime, durationHr) =>
   try {
     // build report protobuf object
     const report = new StatsReport();
-    report.header = new ReportHeader({
-      hostname: os.hostname(),
-      agent_version: VERSION,
-      runtime_version: `node ${process.version}`,
-      // XXX not actually uname, but what node has easily.
-      uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
-    });
+    report.header = REPORT_HEADER;
 
     report.start_time = new Timestamp(
       { seconds: (endTime / 1000), nanos: (endTime % 1000) * 1e6 });
@@ -179,13 +181,7 @@ export const sendTrace = (agent, context, info, resolvers) => {
   // catch manually for debugging.
   try {
     const report = new TracesReport();
-    report.header = new ReportHeader({
-      hostname: os.hostname(),
-      agent_version: VERSION,
-      runtime_version: `node ${process.version}`,
-      // XXX not actually uname, but what node has easily.
-      uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
-    });
+    report.header = REPORT_HEADER;
     const req = context.req;
 
     const trace = new Trace();
@@ -360,13 +356,7 @@ export const sendSchema = (agent, schema) => {
       const schemaString = JSON.stringify(resultSchema);
 
       const report = new SchemaReport();
-      report.header = new ReportHeader({
-        hostname: os.hostname(),
-        agent_version: VERSION,
-        runtime_version: `node ${process.version}`,
-        // XXX not actually uname, but what node has easily.
-        uname: `${os.platform()}, ${os.type()}, ${os.release()}, ${os.arch()})`,
-      });
+      report.header = REPORT_HEADER;
       report.introspection_result = schemaString;
       report.type = getTypesFromSchema(schema);
 
