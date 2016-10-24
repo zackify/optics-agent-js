@@ -12,13 +12,9 @@ let defaultAgent = null;
 // once before any other calls.
 export const configureAgent = (options) => {
   if (defaultAgent) {
-    // XXX This error message is confusing if you only call configureAgent once
-    //     but call another function before it
-    // XXX This is a pretty bad problem that means your configuration won't work
-    //     --- wouldn't throwing be better?
-    //     https://github.com/apollostack/optics-agent-js/issues/17
-    defaultAgent.debugFn('Error: default agent already configured.');
-    return;
+    throw new Error(
+      'Optics Agent configuration already set. Make sure `configureAgent` is called only once and before any calls to `middleware`, `instrumentSchema`, or `instrumentHapiServer`.'
+    );
   }
 
   defaultAgent = new Agent(options);
