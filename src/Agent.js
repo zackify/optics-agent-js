@@ -38,9 +38,9 @@ export default class Agent {
     // Ensure we have an api key. If not, print and disable the agent.
     if (!this.apiKey) {
       this.debugFn(
-        'Optics agent disabled: no API key specified.',
-        'Set the `apiKey` option to `configureAgent` or `new Agent`, ',
-        ' or set the `OPTICS_API_KEY` environment variable.'
+        'Optics agent disabled: no API key specified. ' +
+        'Set the `apiKey` option to `configureAgent` or `new Agent`, ' +
+        'or set the `OPTICS_API_KEY` environment variable.'
       );
       this.disabled = true;
       return;
