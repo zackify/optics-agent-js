@@ -80,15 +80,17 @@ export const getTypesFromSchema = (schema) => {
 // system boot) is not a good idea.
 const durationHrTimeToNanos = hrtime => ((hrtime[0] * 1e9) + hrtime[1]);
 
+// Converts a JS Date into a Proto.Timestamp.
+const dateToTimestamp = date => new Timestamp(
+  { seconds: (date / 1000), nanos: (date % 1000) * 1e6 });
+
 // //////// Sending Data ////////
 
 export const sendMessage = (agent, path, message) => {
   const headers = {
     'user-agent': 'optics-agent-js',
+    'x-api-key': agent.apiKey,
   };
-  if (agent.apiKey) {
-    headers['x-api-key'] = agent.apiKey;
-  }
 
   const options = {
     url: agent.endpointUrl + path,
@@ -114,16 +116,15 @@ export const sendMessage = (agent, path, message) => {
 
 //  //////// Marshalling Data ////////
 
-export const sendReport = (agent, reportData, startTime, endTime, durationHr) => {
+export const sendStatsReport = (agent, reportData, startTime, endTime, durationHr) => {
   try {
     // build report protobuf object
     const report = new StatsReport();
     report.header = REPORT_HEADER;
 
-    report.start_time = new Timestamp(
-      { seconds: (endTime / 1000), nanos: (endTime % 1000) * 1e6 });
-    report.end_time = new Timestamp(
-      { seconds: (startTime / 1000), nanos: (startTime % 1000) * 1e6 });
+    report.start_time = dateToTimestamp(startTime);
+    report.end_time = dateToTimestamp(endTime);
+    // XXX Would be nice to rename this field to include the unit (ns).
     report.realtime_duration = durationHrTimeToNanos(durationHr);
 
     report.type = getTypesFromSchema(agent.schema);
@@ -186,19 +187,16 @@ export const sendTrace = (agent, context, info, resolvers) => {
 
     const trace = new Trace();
     // XXX make up a server_id
-    trace.start_time = new Timestamp(
-      { seconds: (context.startWallTime / 1000),
-        nanos: (context.startWallTime % 1000) * 1e6 });
-    trace.end_time = new Timestamp(
-      { seconds: (context.endWallTime / 1000),
-        nanos: (context.endWallTime % 1000) * 1e6 });
+    trace.start_time = dateToTimestamp(context.startWallTime);
+    trace.end_time = dateToTimestamp(context.endWallTime);
     trace.duration_ns = durationHrTimeToNanos(context.durationHrTime);
 
     trace.signature = agent.normalizeQuery(info);
 
     trace.details = new Trace.Details();
     const operationStr = print(info.operation);
-    const fragmentsStr = Object.keys(info.fragments).map(k => print(info.fragments[k])).join('\n');
+    const fragmentsStr = Object.keys(info.fragments).map(
+      k => `${print(info.fragments[k])}\n`).join('');
     trace.details.raw_query = `${operationStr}\n${fragmentsStr}`;
     if (info.operation.name) {
       trace.details.operation_name = print(info.operation.name);
@@ -220,6 +218,8 @@ export const sendTrace = (agent, context, info, resolvers) => {
     trace.http.path = req.url;
 
     trace.execute = new Trace.Node();
+    // XXX trace.execute.start_time is missing despite it being documented as
+    // non-(optional).
     trace.execute.child = resolvers.map((rep) => {
       // XXX for now we just list all the resolvers in a flat list.
       //
@@ -475,12 +475,13 @@ export const reportRequestEnd = (req) => {
             perClient: {},
             perField: {},
           };
-        }
 
-        // fill out per field if we haven't already for this query shape.
-        const perField = res[query].perField;
-        if (Object.keys(perField).length === 0) {
+          const perField = res[query].perField;
           const typeInfo = new TypeInfo(agent.schema);
+          // We do this calculation once per minute per query. We think this
+          // will be fast enough in most cases, and is out of critical path, but
+          // if profiling points at a slow spot here consider a cache -- the
+          // data is very cachable.
           visit(info.operation, visitWithTypeInfo(typeInfo, {
             Field: () => {
               const parentType = typeInfo.getParentType().name;
@@ -549,9 +550,11 @@ export const reportRequestEnd = (req) => {
         });
 
 
-        // check to see if we've sent a trace for this bucket yet this
-        // report period. if we haven't (ie, if we're the only query in
+        // check to see if we've sent a trace for this bucket/client name yet
+        // this report period. if we haven't (ie, if we're the only query in
         // this bucket), send one now.
+        // XXX would it also make sense to send traces for strange buckets of
+        //     individual resolvers?
         const bucket = latencyBucket(nanos);
         const numSoFar = clientObj.latencyBuckets[bucket];
         if (numSoFar === 1 && agent.reportTraces) {
