@@ -21,6 +21,9 @@ import {
   sendStatsReport,
 } from './Report';
 
+export const MIN_REPORT_INTERVAL_MS = 10 * 1000;
+export const DEFAULT_REPORT_INTERVAL_MS = 60 * 1000;
+
 export default class Agent {
   constructor(options) {
     // Public options. See README.md for descriptions.
@@ -52,10 +55,17 @@ export default class Agent {
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
                         'https://optics-report.apollodata.com/');
     this.endpointUrl = this.endpointUrl.replace(/\/$/, '');
-    this.reportIntervalMs = reportIntervalMs || (60 * 1000);
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;
+
+    this.reportIntervalMs = reportIntervalMs || DEFAULT_REPORT_INTERVAL_MS;
+    if (this.reportIntervalMs < MIN_REPORT_INTERVAL_MS) {
+      this.debugFn(
+        `Optics: minimum reportInterval is ${MIN_REPORT_INTERVAL_MS}. Setting reportInterval to minimum.`
+      );
+      this.reportIntervalMs = MIN_REPORT_INTERVAL_MS;
+    }
 
     // Internal state.
 
