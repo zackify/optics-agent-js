@@ -65,7 +65,7 @@ Options include:
 
 * `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or the `OPTICS_ENDPOINT_URL` environment variable if it is set. You shouldn't need to set this unless you are debugging.
 
-* `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. You shouldn't need to set this unless you are debugging.
+* `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. Minimum 10 seconds. You shouldn't need to set this unless you are debugging.
 
 
 ### Instrument your schema
