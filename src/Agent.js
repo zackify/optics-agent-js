@@ -18,7 +18,7 @@ import {
 
 import {
   reportSchema,
-  sendReport,
+  sendStatsReport,
 } from './Report';
 
 export default class Agent {
@@ -72,7 +72,7 @@ export default class Agent {
     // https://github.com/apollostack/optics-agent-js/issues/4 we may
     // want to make this more complicated than just setInterval.
     // XXX there's no way to stop this interval (eg, for tests)
-    this.reportTimer = setInterval(() => { this.sendReport(); },
+    this.reportTimer = setInterval(() => { this.sendStatsReport(); },
                                    this.reportIntervalMs);
   }
 
@@ -108,7 +108,7 @@ export default class Agent {
 
   // XXX This is not part of the public API.
   //     https://github.com/apollostack/optics-agent-js/issues/51
-  sendReport() {
+  sendStatsReport() {
     if (!this.schema) {
       this.debugFn('Optics agent: schema not instrumented. Make sure to call `instrumentSchema`.');
       return;
@@ -122,6 +122,6 @@ export default class Agent {
     this.reportStartTime = +new Date();
     this.pendingResults = {};
     // actually send
-    sendReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
+    sendStatsReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
   }
 }
