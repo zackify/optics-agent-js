@@ -172,7 +172,7 @@ export const sendStatsReport = (agent, reportData, startTime, endTime, durationH
 
     sendMessage(agent, '/api/ss/stats', report);
   } catch (e) {
-    console.log('EEE', e);  // eslint-disable-line no-console
+    console.log('Optics sendStatsReport error', e);  // eslint-disable-line no-console
   }
 };
 
@@ -239,7 +239,7 @@ export const sendTrace = (agent, context, info, resolvers) => {
 
     sendMessage(agent, '/api/ss/traces', report);
   } catch (e) {
-    console.log('EEE', e);  // eslint-disable-line no-console
+    console.log('Optics sendTrace error', e);  // eslint-disable-line no-console
   }
 };
 
@@ -344,7 +344,7 @@ export const sendSchema = (agent, schema) => {
     (res) => {
       if (!res || !res.data || !res.data.__schema) {
         // XXX huh?
-        console.log('Bad schema result');  // eslint-disable-line no-console
+        console.log('Optics internal error: bad schema result');  // eslint-disable-line no-console
         return;
       }
       const resultSchema = res.data.__schema;
@@ -513,7 +513,7 @@ export const reportRequestEnd = (req) => {
 
         if (!clientObj) {
           // XXX huh?
-          console.log('CC2', query);  // eslint-disable-line no-console
+          console.log('Optics internal error: no match for query', query);  // eslint-disable-line no-console
           return;
         }
 
@@ -564,7 +564,7 @@ export const reportRequestEnd = (req) => {
     });
   } catch (e) {
     // XXX https://github.com/apollostack/optics-agent-js/issues/17
-    console.log('EEE', e);  // eslint-disable-line no-console
+    console.log('Optics reportRequestEnd error', e);  // eslint-disable-line no-console
   }
 };
 
