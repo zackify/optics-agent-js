@@ -55,13 +55,6 @@ export const getTypesFromSchema = (schema) => {
     t.name = typeName;
     t.field = [];
     const fields = type.getFields();
-
-    // XXX In general I'm confused by why `Object.keys(X).forEach` is the most
-    // common iteration idiom. It constructs a new array for the keys each time!
-    // Surely that's not the best recommended pattern these days, is it? I guess
-    // there's "use `Object.create(null)` instead of `{}` and happily use
-    // for/in", or there's "use Map instead". Maybe I don't know what I'm
-    // talking about though.
     Object.keys(fields).forEach((fieldName) => {
       const field = fields[fieldName];
       const f = new Field();
@@ -485,11 +478,10 @@ export const reportRequestEnd = (req) => {
 
           const perField = res[query].perField;
           const typeInfo = new TypeInfo(agent.schema);
-          // XXX Is this a slow operation, that we might end up performing once
-          // per minute? Is it worth keeping around an LRU cache from query to
-          // this shape? My guess is no, but just want an answer and I'll
-          // happily delete this comment if you agree that it's fast enough that
-          // once per minute per query is fine.
+          // We do this calculation once per minute per query. We think this
+          // will be fast enough in most cases, and is out of critical path, but
+          // if profiling points at a slow spot here consider a cache -- the
+          // data is very cachable.
           visit(info.operation, visitWithTypeInfo(typeInfo, {
             Field: () => {
               const parentType = typeInfo.getParentType().name;
