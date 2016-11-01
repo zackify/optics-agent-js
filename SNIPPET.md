@@ -19,7 +19,7 @@ OpticsAgent.instrumentSchema(executableSchema);
 
 Add the middleware:
 ```js
-expressServer.use(OpticsAgent.middleware());`
+expressServer.use(OpticsAgent.middleware());
 ```
 
 Add to your GraphQL context object:
