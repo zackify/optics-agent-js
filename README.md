@@ -65,6 +65,8 @@ Options include:
 
 * `endpointUrl`: String. Where to send the reports. Defaults to the production Optics endpoint, or the `OPTICS_ENDPOINT_URL` environment variable if it is set. You shouldn't need to set this unless you are debugging.
 
+* `proxyUrl`: String. HTTP proxy to use when sending reports. Default to no proxying, or the `HTTPS_PROXY` environment variable if it is set. You should only set this when your servers cannot connect directly to the Optics service.
+
 * `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. Minimum 10 seconds. You shouldn't need to set this unless you are debugging.
 
 
