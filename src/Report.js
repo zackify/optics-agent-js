@@ -482,19 +482,24 @@ export const reportRequestEnd = (req) => {
           // will be fast enough in most cases, and is out of critical path, but
           // if profiling points at a slow spot here consider a cache -- the
           // data is very cachable.
-          visit(info.operation, visitWithTypeInfo(typeInfo, {
-            Field: () => {
-              const parentType = typeInfo.getParentType().name;
-              if (!perField[parentType]) {
-                perField[parentType] = {};
-              }
-              const fieldName = typeInfo.getFieldDef().name;
-              perField[parentType][fieldName] = {
-                returnType: printType(typeInfo.getType()),
-                latencyBuckets: newLatencyBuckets(),
-              };
-            },
-          }));
+          const asts = [info.operation].concat(
+            Object.keys(info.fragments).map(
+              k => info.fragments[k]));
+          asts.forEach((ast) => {
+            visit(ast, visitWithTypeInfo(typeInfo, {
+              Field: () => {
+                const parentType = typeInfo.getParentType().name;
+                if (!perField[parentType]) {
+                  perField[parentType] = {};
+                }
+                const fieldName = typeInfo.getFieldDef().name;
+                perField[parentType][fieldName] = {
+                  returnType: printType(typeInfo.getType()),
+                  latencyBuckets: newLatencyBuckets(),
+                };
+              },
+            }));
+          });
         }
 
         // initialize latency buckets if this is the first time we've had
@@ -542,7 +547,11 @@ export const reportRequestEnd = (req) => {
                     res[query].perField[typeName] &&
                     res[query].perField[typeName][fieldName];
             if (!fObj) {
-              // XXX when could this happen now?
+              // This can happen when there is a fragment on an
+              // interface and a field that returns a concrete type of
+              // that fragment.
+              //
+              // XXX when else can this happen?
               return;
             }
             addLatencyToBuckets(fObj.latencyBuckets, resolverNanos);
