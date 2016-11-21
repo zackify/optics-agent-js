@@ -2,6 +2,9 @@
 
 ### vNEXT
 
+### 1.0.2
+* Fix encoding issue for query variables in traces.
+
 ### 1.0.1
 * Fix issue where fragments were not properly reported in stats.
 
