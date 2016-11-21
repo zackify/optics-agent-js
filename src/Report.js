@@ -2,7 +2,7 @@
 // the agent instrumentation and reporting it back to the optics
 // backend.
 
-
+import { Buffer } from 'buffer';
 import os from 'os';
 import request from 'request';
 import { graphql } from 'graphql';
@@ -204,7 +204,7 @@ export const sendTrace = (agent, context, info, resolvers) => {
     if (agent.reportVariables) {
       trace.details.variables = {};
       for (const k of Object.keys(info.variableValues)) {
-        trace.details.variables[k] = JSON.stringify(info.variableValues[k]);
+        trace.details.variables[k] = new Buffer(JSON.stringify(info.variableValues[k]), 'utf8');
       }
     }
 
