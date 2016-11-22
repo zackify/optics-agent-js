@@ -29,7 +29,7 @@ export default class Agent {
     // Public options. See README.md for descriptions.
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
-      endpointUrl, reportIntervalMs, printReports,
+      endpointUrl, proxyUrl, reportIntervalMs, printReports,
       reportTraces, reportVariables,
     } = options || {};
     // XXX We don't actually intend for these fields to be part of a public
@@ -55,6 +55,7 @@ export default class Agent {
     this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL ||
                         'https://optics-report.apollodata.com/');
     this.endpointUrl = this.endpointUrl.replace(/\/$/, '');
+    this.proxyUrl = proxyUrl || process.env.HTTPS_PROXY;
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;

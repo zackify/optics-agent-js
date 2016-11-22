@@ -97,6 +97,7 @@ export const sendMessage = (agent, path, message) => {
     method: 'POST',
     headers,
     body: message.encode().toBuffer(),
+    proxy: agent.proxyUrl,
   };
   request(options, (err, res, body) => {
     // XXX add retry logic
