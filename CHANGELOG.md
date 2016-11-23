@@ -1,6 +1,7 @@
 # Change log
 
-### vNEXT
+### 1.0.3
+* Support `HTTPS_PROXY` and a proxyUrl option.
 
 ### 1.0.2
 * Fix encoding issue for query variables in traces.
