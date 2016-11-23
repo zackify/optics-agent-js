@@ -4,18 +4,15 @@
   "description": "Apollo Optics Agent for GraphQL-js",
   "main": "dist/index.js",
   "scripts": {
-    "build": "babel ./src --ignore test --out-dir ./dist",
-    "prepublish": "npm run build",
-    "test": "mocha --compilers js:babel-core/register --reporter spec --full-trace 'src/**/*.test.js'",
-    "lint": "eslint ."
+    "build": "tsc",
+    "prepublish": "tsc",
+    "lint": "tslint ."
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/apollostack/optics-agent-js.git"
   },
-  "keywords": [
-    "graphql"
-  ],
+  "keywords": ["graphql", "optics"],
   "author": "Meteor Development Group",
   "license": "MIT",
   "bugs": {
@@ -23,24 +20,16 @@
   },
   "homepage": "https://github.com/apollostack/optics-agent-js#readme",
   "devDependencies": {
-    "babel-cli": "^6.11.4",
-    "babel-eslint": "^6.1.2",
-    "babel-plugin-inline-package-json": "^2.0.0",
-    "babel-preset-es2015": "^6.13.2",
-    "chai": "^3.5.0",
-    "eslint": "^3.8.0",
-    "eslint-config-airbnb-base": "^8.0.0",
-    "eslint-plugin-import": "^1.16.0",
+    "@types/graphql": "^0.8.2",
+    "@types/node": "^6.0.50",
     "graphql": "^0.6.2 || ^0.7.0",
-    "graphql-tag": "^0.1.14",
-    "mocha": "^3.0.2"
+    "tslint": "^4.0.1",
+    "typescript": "^2.0.10"
   },
   "peerDependencies": {
     "graphql": "^0.6.2 || ^0.7.0"
   },
   "dependencies": {
-    "graphql-tools": "^0.7.2",
-    "on-finished": "^2.3.0",
     "protobufjs-no-cli": "^5.0.1",
     "request": "^2.74.0"
   }
