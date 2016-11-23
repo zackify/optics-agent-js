@@ -1,5 +1,3 @@
-/* eslint-disable no-tabs */
-
 // This file contains the protobuf description for the reports sent to
 // the server. It exports JavaScript classes for each top-level type
 // in the proto file.

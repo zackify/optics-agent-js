@@ -1,4 +1,3 @@
-/* eslint-disable */
 // This code is taken from:
 // https://raw.githubusercontent.com/graphql/graphql-js/c614f759df5e436b1092af53811311b254ebb189/src/utilities/separateOperations.js
 // according to the term of the BSD-style license provided there and copied below

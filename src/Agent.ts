@@ -53,7 +53,7 @@ export default class Agent {
         // XXX We don't actually intend for these fields to be part of a public
         //     stable API. https://github.com/apollostack/optics-agent-js/issues/51
         this.apiKey = config.apiKey || process.env.OPTICS_API_KEY;
-        this.debugFn = config.debugFn || console.log; // eslint-disable-line no-console
+        this.debugFn = config.debugFn || console.log;
 
         // Ensure we have an api key. If not, print and disable the agent.
         if (!this.apiKey) {

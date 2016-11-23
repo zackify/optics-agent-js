@@ -27,7 +27,6 @@ import {
 } from './Proto';
 
 // Babel cleverly inlines the require below!
-// eslint-disable-next-line global-require
 const VERSION = `optics-agent-js ${require('../package.json').version}`;
 
 // Pre-compute the report header. It is the same for each message.
@@ -103,13 +102,13 @@ export const sendMessage = (agent, path, message) => {
     // XXX add retry logic
     // XXX add separate flag for disable printing errors?
     if (err) {
-      console.log('OPTICS Error trying to report to optics backend:', err.message);  // eslint-disable-line no-console
+      console.log('OPTICS Error trying to report to optics backend:', err.message);
     } else if (res.statusCode < 200 || res.statusCode > 299) {
-      console.log('OPTICS Backend error', res.statusCode, body);  // eslint-disable-line no-console
+      console.log('OPTICS Backend error', res.statusCode, body);
     }
 
     if (agent.printReports) {
-      console.log('OPTICS', path, message.encodeJSON(), body);  // eslint-disable-line no-console
+      console.log('OPTICS', path, message.encodeJSON(), body);
     }
   });
 };
@@ -173,7 +172,7 @@ export const sendStatsReport = (agent, reportData, startTime, endTime, durationH
 
     sendMessage(agent, '/api/ss/stats', report);
   } catch (e) {
-    console.log('Optics sendStatsReport error', e);  // eslint-disable-line no-console
+    console.log('Optics sendStatsReport error', e);
   }
 };
 
@@ -210,8 +209,8 @@ export const sendTrace = (agent, context, info, resolvers) => {
     }
 
     const { client_name, client_version } = agent.normalizeVersion(req);
-    trace.client_name = client_name;  // eslint-disable-line camelcase
-    trace.client_version = client_version;  // eslint-disable-line camelcase
+    trace.client_name = client_name;
+    trace.client_version = client_version;
 
     trace.client_addr = req.connection.remoteAddress; // XXX x-forwarded-for?
     trace.http = new Trace.HTTPInfo();
@@ -345,7 +344,7 @@ export const sendSchema = (agent, schema) => {
     (res) => {
       if (!res || !res.data || !res.data.__schema) {
         // XXX huh?
-        console.log('Optics internal error: bad schema result');  // eslint-disable-line no-console
+        console.log('Optics internal error: bad schema result');
         return;
       }
       const resultSchema = res.data.__schema;
@@ -395,7 +394,7 @@ export const reportRequestStart = (context, queryInfo, queryContext) => {
   // caller does not allocate a new context object per query and we
   // see a duplicate context object.
   if (!context.queries) {
-    context.queries = new Map(); // eslint-disable-line no-param-reassign
+    context.queries = new Map();
   }
   if (!context.queries.has(queryContext)) {
     context.queries.set(queryContext, []);
@@ -519,7 +518,7 @@ export const reportRequestEnd = (req) => {
 
         if (!clientObj) {
           // XXX huh?
-          console.log('Optics internal error: no match for query', query);  // eslint-disable-line no-console
+          console.log('Optics internal error: no match for query', query);
           return;
         }
 
@@ -574,7 +573,7 @@ export const reportRequestEnd = (req) => {
     });
   } catch (e) {
     // XXX https://github.com/apollostack/optics-agent-js/issues/17
-    console.log('Optics reportRequestEnd error', e);  // eslint-disable-line no-console
+    console.log('Optics reportRequestEnd error', e);
   }
 };
 

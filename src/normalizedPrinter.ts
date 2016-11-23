@@ -1,4 +1,3 @@
-/* eslint-disable */
 // This code taken and modified from:
 // https://raw.githubusercontent.com/graphql/graphql-js/3142d872af011daec8be83c3a88d014f47ee0c64/src/language/printer.js
 // according to the term of the BSD-style license provided there and copied below
