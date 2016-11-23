@@ -16,7 +16,7 @@ import {
     sendStatsReport,
 } from './Report';
 
-import { ClientRequest } from 'http';
+import {ClientRequest} from 'http';
 import {GraphQLSchema} from "graphql/type/schema";
 
 export const MIN_REPORT_INTERVAL_MS = 10 * 1000;
@@ -30,24 +30,29 @@ export interface ClientVersion {
 
 export interface AgentConfig {
     apiKey: string,
-    debugFn: (message: string) => null,
-    normalizeVersion: (ClientRequest) => ClientVersion,
-    normalizeQuery,
-    endpointUrl: string,
-    proxyUrl: string,
-    reportIntervalMs,
-    printReports,
-    reportTraces,
-    reportVariables
+    debugFn?: (message: string) => null,
+    normalizeVersion?: (ClientRequest) => ClientVersion,
+    normalizeQuery?,
+    endpointUrl?: string,
+    proxyUrl?: string,
+    reportIntervalMs?: number,
+    printReports?: boolean,
+    reportTraces?: boolean,
+    reportVariables?: boolean
 }
 
 export default class Agent {
     private disabled: boolean;
     private schema: GraphQLSchema;
-    private debugFn: (string) => null;
+    private debugFn: (msg: string) => void;
     private apiKey: string;
-    private normalizeVersion: (ClientRequest) => ClientVersion;
+    private normalizeVersion: (req: ClientRequest) => ClientVersion;
     private endpointUrl: string;
+    private proxyUrl: string;
+    private printReports: boolean;
+    private reportTraces: boolean;
+    private reportVariables: boolean;
+    private reportIntervalMs: number;
 
     constructor(config: AgentConfig) {
         // XXX We don't actually intend for these fields to be part of a public
@@ -69,14 +74,14 @@ export default class Agent {
 
         this.normalizeVersion = config.normalizeVersion || defaultNV;
         this.normalizeQuery = config.normalizeQuery || defaultNQ;
-        this.endpointUrl = (endpointUrl || process.env.OPTICS_ENDPOINT_URL || 'https://optics-report.apollodata.com/');
-        this.endpointUrl = this.endpointUrl.replace(/\/$/, '');
-        this.proxyUrl = proxyUrl || process.env.HTTPS_PROXY;
-        this.printReports = !!printReports;
-        this.reportTraces = reportTraces !== false;
-        this.reportVariables = reportVariables !== false;
+        this.endpointUrl = (config.endpointUrl || process.env.OPTICS_ENDPOINT_URL || 'https://optics-report.apollodata.com')
+            .replace(/\/$/, '');
+        this.proxyUrl = config.proxyUrl || process.env.HTTPS_PROXY;
+        this.printReports = config.printReports !== false;
+        this.reportTraces = config.reportTraces !== false;
+        this.reportVariables = config.reportVariables !== false;
 
-        this.reportIntervalMs = reportIntervalMs || DEFAULT_REPORT_INTERVAL_MS;
+        this.reportIntervalMs = config.reportIntervalMs || DEFAULT_REPORT_INTERVAL_MS;
         if (this.reportIntervalMs < MIN_REPORT_INTERVAL_MS) {
             this.debugFn(
                 `Optics: minimum reportInterval is ${MIN_REPORT_INTERVAL_MS}. Setting reportInterval to minimum.`
@@ -109,7 +114,7 @@ export default class Agent {
         if (this.disabled) {
             return schema;
         }
-        this.schema = instrumentSchema(schema, this);
+        this.schema = instrumentSchema(schema);
         reportSchema(this, schema);
         return this.schema;
     }
@@ -137,9 +142,7 @@ export default class Agent {
         return newContext(req, this);
     }
 
-    // XXX This is not part of the public API.
-    //     https://github.com/apollostack/optics-agent-js/issues/51
-    sendStatsReport() {
+    private sendStatsReport() {
         if (!this.schema) {
             this.debugFn('Optics agent: schema not instrumented. Make sure to call `instrumentSchema`.');
             return;

@@ -1,9 +1,9 @@
 // This file contains helper functions to format or normalize data.
 
-import { GraphQLList, GraphQLNonNull } from 'graphql/type';
-import { separateOperations, opName } from './separateOperations';
+import {GraphQLList, GraphQLNonNull} from 'graphql/type';
+import {separateOperations, opName} from './separateOperations';
 
-import { print } from './normalizedPrinter';
+import {print} from './normalizedPrinter';
 
 
 //  //////// GraphQL ////////
@@ -12,28 +12,28 @@ import { print } from './normalizedPrinter';
 // https://github.com/apollostack/optics-agent/blob/master/docs/signatures.md
 // for details.
 export const normalizeQuery = (info) => {
-  const doc = {
-    kind: 'Document',
-    definitions: [
-      info.operation,
-      ...Object.keys(info.fragments).map(k => info.fragments[k]),
-    ],
-  };
+    const doc = {
+        kind: 'Document',
+        definitions: [
+            info.operation,
+            ...Object.keys(info.fragments).map(k => info.fragments[k]),
+        ],
+    };
 
-  const prunedAST = separateOperations(doc)[opName(info.operation)];
+    const prunedAST = separateOperations(doc)[opName(info.operation)];
 
-  return print(prunedAST);
+    return print(prunedAST);
 };
 
 
 // Turn a graphql type into a user-friendly string. eg 'String' or '[Person!]'
 export const printType = (type) => {
-  if (type instanceof GraphQLList) {
-    return `[${printType(type.ofType)}]`;
-  } else if (type instanceof GraphQLNonNull) {
-    return `${printType(type.ofType)}!`;
-  }
-  return type.name;
+    if (type instanceof GraphQLList) {
+        return `[${printType(type.ofType)}]`;
+    } else if (type instanceof GraphQLNonNull) {
+        return `${printType(type.ofType)}!`;
+    }
+    return type.name;
 };
 
 
@@ -44,7 +44,7 @@ export const printType = (type) => {
 //
 // XXX implement https://github.com/apollostack/optics-agent-js/issues/1
 export const normalizeVersion = _req => (
-  { client_name: 'none', client_version: 'nope' }
+    {client_name: 'none', client_version: 'nope'}
 );
 
 
@@ -56,44 +56,43 @@ export const normalizeVersion = _req => (
 // See https://github.com/apollostack/optics-agent/blob/master/docs/histograms.md
 // for details of the algorithm.
 export const latencyBucket = (nanos) => {
-  const micros = nanos / 1000;
+    const micros = nanos / 1000;
 
-  const bucket = Math.log(micros) / Math.log(1.1);
-  if (bucket <= 0) {
-    return 0;
-  }
-  if (bucket >= 255) {
-    return 255;
-  }
-  return Math.ceil(bucket);
+    const bucket = Math.log(micros) / Math.log(1.1);
+    if (bucket <= 0) {
+        return 0;
+    }
+    if (bucket >= 255) {
+        return 255;
+    }
+    return Math.ceil(bucket);
 };
 
-// Return 256 zeros. A little ugly, but probably easy for compiler to
-// optimize at least.
+// Return 256 zeros.
 export const newLatencyBuckets = () => [
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 ];
 
 // Takes a bucket list returned by `newLatencyBuckets` and a duration
 // in nanoseconds and adds 1 to the bucket corresponding to the
 // duration.
 export const addLatencyToBuckets = (buckets, nanos) => {
-  buckets[latencyBucket(nanos)] += 1;  // eslint-disable-line no-param-reassign
+    buckets[latencyBucket(nanos)] += 1;  // eslint-disable-line no-param-reassign
 };
 
 
@@ -101,9 +100,9 @@ export const addLatencyToBuckets = (buckets, nanos) => {
 // the server. Currently this is just trimming trailing zeros but it
 // could later be a more compact encoding.
 export const trimLatencyBuckets = (buckets) => {
-  let max = buckets.length;
-  while (max > 0 && buckets[max - 1] === 0) {
-    max -= 1;
-  }
-  return buckets.slice(0, max);
+    let length = buckets.length;
+    while (length > 0 && buckets[length - 1] === 0) {
+        length--;
+    }
+    return buckets.slice(0, length);
 };

@@ -25,6 +25,7 @@
   "devDependencies": {
     "@types/graphql": "^0.8.2",
     "@types/node": "^6.0.50",
+    "@types/request": "^0.0.34",
     "graphql": "^0.6.2 || ^0.7.0",
     "tslint": "^4.0.1",
     "typescript": "^2.0.10"

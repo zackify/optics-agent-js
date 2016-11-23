@@ -2,7 +2,7 @@
 // the server. It exports JavaScript classes for each top-level type
 // in the proto file.
 
-import { loadProto } from 'protobufjs-no-cli';
+import {loadProto} from 'protobufjs-no-cli';
 
 // Copied and pasted from https://github.com/apollostack/optics-agent
 // instead of using a separate file so we can load w/o doing async I/O
@@ -220,7 +220,7 @@ message SchemaReport {
 // export top level types
 
 function ns(name) {
-  return `apollo.optics.proto.${name}`;
+    return `apollo.optics.proto.${name}`;
 }
 
 export const Id128 = protoBuilder.build(ns('Id128'));
