@@ -4,7 +4,6 @@
 // The Agent holds the configuration and all the in-memory state for
 // the server.
 
-
 import {
     normalizeQuery as defaultNQ, normalizeVersion as defaultNV,
 } from './Normalize';
@@ -18,10 +17,10 @@ import {
 
 import {ClientRequest} from 'http';
 import {GraphQLSchema} from "graphql/type/schema";
+import {ExecutionContext} from "graphql/execution/execute";
 
 export const MIN_REPORT_INTERVAL_MS = 10 * 1000;
 export const DEFAULT_REPORT_INTERVAL_MS = 60 * 1000;
-
 
 export interface ClientVersion {
     client_name: string,
@@ -47,14 +46,19 @@ export default class Agent {
     private debugFn: (msg: string) => void;
     private apiKey: string;
     private normalizeVersion: (req: ClientRequest) => ClientVersion;
+    private normalizeQuery: (query: ExecutionContext) => string;
     private endpointUrl: string;
     private proxyUrl: string;
     private printReports: boolean;
     private reportTraces: boolean;
     private reportVariables: boolean;
     private reportIntervalMs: number;
+    private reportStartTime: number;
+    private reportStartHrTime: [number, number];
+    private pendingResults;
+    private reportTimer;
 
-    constructor(config: AgentConfig) {
+    constructor(config?: AgentConfig) {
         // XXX We don't actually intend for these fields to be part of a public
         //     stable API. https://github.com/apollostack/optics-agent-js/issues/51
         this.apiKey = config.apiKey || process.env.OPTICS_API_KEY;

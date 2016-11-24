@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc",
     "prepublish": "tsc",
+    "test": "tsc && mocha",
     "lint": "tslint ."
   },
   "repository": {
@@ -24,9 +25,11 @@
   "homepage": "https://github.com/apollostack/optics-agent-js#readme",
   "devDependencies": {
     "@types/graphql": "^0.8.2",
+    "@types/mocha": "^2.2.33",
     "@types/node": "^6.0.50",
     "@types/request": "^0.0.34",
     "graphql": "^0.6.2 || ^0.7.0",
+    "mocha": "^3.1.2",
     "tslint": "^4.0.1",
     "typescript": "^2.0.10"
   },
@@ -34,6 +37,7 @@
     "graphql": "^0.6.2 || ^0.7.0"
   },
   "dependencies": {
+    "graphql-tools": "^0.8.3",
     "on-finished": "^2.3.0",
     "protobufjs-no-cli": "^5.0.1",
     "request": "^2.74.0"
