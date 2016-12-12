@@ -1,7 +1,7 @@
 # optics-agent-js
-Optics Agent for GraphQL-js
+Apollo Optics agent for GraphQL-js
 
-Here are the steps to enable Optics Agent in your app. See below for details on each step:
+Here are the steps to enable Apollo Optics agent in your app. See below for details on each step:
 * Install the NPM package in your app: `npm install optics-agent --save`
 * Import the package in your main js file: `import OpticsAgent from 'optics-agent';`
 * Get an API key from the Optics web interface and configure the agent. Either:
@@ -14,7 +14,7 @@ Here are the steps to enable Optics Agent in your app. See below for details on 
 
 ## Version requirements
 
-Optics Agent supports:
+Apollo Optics Agent supports:
 
 * Node: 4, 5 and 6
 * [graphql](https://www.npmjs.com/package/graphql): 0.6 and 0.7
