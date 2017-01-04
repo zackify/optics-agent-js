@@ -14,6 +14,7 @@ import {
   instrumentSchema,
   newContext,
   opticsMiddleware,
+  koaMiddleware
 } from './Instrument';
 
 import {
@@ -94,6 +95,14 @@ export default class Agent {
     this.schema = instrumentSchema(schema, this);
     reportSchema(this, schema);
     return this.schema;
+  }
+
+  koaMiddleware() {
+    if (this.disabled) {
+      return ((_ctx, next) => { return next(); });
+    }
+
+    return koaMiddleware;
   }
 
   middleware() {
