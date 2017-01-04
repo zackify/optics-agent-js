@@ -251,7 +251,7 @@ export const instrumentSchema = (schema) => {
 
     field.resolve = decorateField(  // eslint-disable-line no-param-reassign
       field.resolve,
-      { typeName, fieldName }
+      { typeName, fieldName },
     );
   });
 

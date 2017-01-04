@@ -43,7 +43,7 @@ export default class Agent {
       this.debugFn(
         'Optics agent disabled: no API key specified. ' +
         'Set the `apiKey` option to `configureAgent` or `new Agent`, ' +
-        'or set the `OPTICS_API_KEY` environment variable.'
+        'or set the `OPTICS_API_KEY` environment variable.',
       );
       this.disabled = true;
       return;
@@ -63,7 +63,7 @@ export default class Agent {
     this.reportIntervalMs = reportIntervalMs || DEFAULT_REPORT_INTERVAL_MS;
     if (this.reportIntervalMs < MIN_REPORT_INTERVAL_MS) {
       this.debugFn(
-        `Optics: minimum reportInterval is ${MIN_REPORT_INTERVAL_MS}. Setting reportInterval to minimum.`
+        `Optics: minimum reportInterval is ${MIN_REPORT_INTERVAL_MS}. Setting reportInterval to minimum.`,
       );
       this.reportIntervalMs = MIN_REPORT_INTERVAL_MS;
     }
