@@ -17,7 +17,7 @@ Here are the steps to enable Apollo Optics agent in your app. See below for deta
 Apollo Optics Agent supports:
 
 * Node: 4, 5 and 6
-* [graphql](https://www.npmjs.com/package/graphql): 0.6 and 0.7
+* [graphql](https://www.npmjs.com/package/graphql): 0.6, 0.7 and 0.8
 
 ## Install
 
