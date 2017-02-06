@@ -204,9 +204,9 @@ export const sendTrace = (agent, context, info, resolvers) => {
     }
     if (agent.reportVariables) {
       trace.details.variables = {};
-      for (const k of Object.keys(info.variableValues)) {
+      Object.keys(info.variableValues).forEach((k) => {
         trace.details.variables[k] = new Buffer(JSON.stringify(info.variableValues[k]), 'utf8');
-      }
+      });
     }
 
     const { client_name, client_version } = agent.normalizeVersion(req);
@@ -351,7 +351,7 @@ export const sendSchema = (agent, schema) => {
       const resultSchema = res.data.__schema;
       // remove the schema schema from the schema.
       resultSchema.types = resultSchema.types.filter(
-        x => x && (x.kind !== 'OBJECT' || x.name !== '__Schema')
+        x => x && (x.kind !== 'OBJECT' || x.name !== '__Schema'),
       );
 
       const schemaString = JSON.stringify(resultSchema);
@@ -362,7 +362,7 @@ export const sendSchema = (agent, schema) => {
       report.type = getTypesFromSchema(schema);
 
       sendMessage(agent, '/api/ss/schema', report);
-    }
+    },
   );
   // ).catch(() => {}); // XXX!
 };
@@ -453,6 +453,7 @@ export const reportRequestEnd = (req) => {
         return;
       }
 
+      // eslint-disable-next-line no-restricted-syntax
       for (const queryObj of (queries.get(resolverReport.resolverContext) || [])) {
         if (resolverReport.resolverInfo.operation === queryObj.info.operation) {
           queryObj.resolvers.push(resolverReport);
