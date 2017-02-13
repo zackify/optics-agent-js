@@ -14,7 +14,7 @@ import {
   instrumentSchema,
   newContext,
   opticsMiddleware,
-  koaMiddleware
+  koaMiddleware,
 } from './Instrument';
 
 import {
@@ -99,7 +99,7 @@ export default class Agent {
 
   koaMiddleware() {
     if (this.disabled) {
-      return ((_ctx, next) => { return next(); });
+      return ((_ctx, next) => next());
     }
 
     return koaMiddleware;
