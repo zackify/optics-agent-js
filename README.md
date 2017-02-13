@@ -69,6 +69,8 @@ Options include:
 
 * `reportIntervalMs`: Number. How often to send reports in milliseconds. Defaults to 1 minute. Minimum 10 seconds. You shouldn't need to set this unless you are debugging.
 
+* `shutdownGracefully`: Boolean. Send statistics when the process exits. Defaults to true.
+
 
 ### Instrument your schema
 

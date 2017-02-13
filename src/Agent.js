@@ -31,7 +31,7 @@ export default class Agent {
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
       endpointUrl, proxyUrl, reportIntervalMs, printReports,
-      reportTraces, reportVariables,
+      reportTraces, reportVariables, shutdownGracefully,
     } = options || {};
     // XXX We don't actually intend for these fields to be part of a public
     //     stable API. https://github.com/apollostack/optics-agent-js/issues/51
@@ -84,8 +84,14 @@ export default class Agent {
     // https://github.com/apollostack/optics-agent-js/issues/4 we may
     // want to make this more complicated than just setInterval.
     // XXX there's no way to stop this interval (eg, for tests)
-    this.reportTimer = setInterval(() => { this.sendStatsReport(); },
-                                   this.reportIntervalMs);
+    this.reportTimer = setInterval(() => this.sendStatsReport(), this.reportIntervalMs);
+
+    // Shutdown gracefully on SIGINT and process.exit()
+    this.shutdownGracefully = shutdownGracefully !== false;
+    if (this.shutdownGracefully) {
+      process.on('exit', () => this.stop());
+      process.on('SIGINT', () => this.stop());
+    }
   }
 
   instrumentSchema(schema) {
@@ -124,6 +130,14 @@ export default class Agent {
       return {};
     }
     return newContext(req, this);
+  }
+
+  stop() {
+    if (this.reportTimer) {
+      clearInterval(this.reportTimer);
+      this.reportTimer = false;
+      this.sendStatsReport();
+    }
   }
 
   // XXX This is not part of the public API.
