@@ -30,6 +30,11 @@ export const middleware = () => {
   return defaultAgent.middleware();
 };
 
+export const koaMiddleware = () => {
+  if (!defaultAgent) { defaultAgent = new Agent(); }
+  return defaultAgent.koaMiddleware();
+};
+
 export const instrumentHapiServer = (server) => {
   if (!defaultAgent) { defaultAgent = new Agent(); }
   return defaultAgent.instrumentHapiServer(server);

@@ -1,6 +1,6 @@
 import Agent from './Agent';
 import { configureAgent, instrumentSchema, middleware,
-         instrumentHapiServer, context } from './DefaultAgent';
+         instrumentHapiServer, koaMiddleware, context } from './DefaultAgent';
 
 // export both as individual symbols and as a default object to
 // support both of these syntaxes:
@@ -13,6 +13,7 @@ export default {
   configureAgent,
   instrumentSchema,
   middleware,
+  koaMiddleware,
   instrumentHapiServer,
   context,
   Agent,
@@ -22,6 +23,7 @@ export {
   configureAgent,
   instrumentSchema,
   middleware,
+  koaMiddleware,
   instrumentHapiServer,
   context,
   Agent,
