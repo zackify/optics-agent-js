@@ -1,5 +1,8 @@
 # Change log
 
+### 1.1.1
+* Update peer dependencies to include graphql 0.9.x.
+
 ### 1.1.0
 * Fix an issue that introduced promises that would throw but the app could not handle.
 * Support for Koa.
