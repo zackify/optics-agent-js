@@ -1,4 +1,6 @@
 # optics-agent-js
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/apollographql/optics-agent-js.svg)](https://greenkeeper.io/)
 Apollo Optics agent for GraphQL-js
 
 Here are the steps to enable Apollo Optics agent in your app. See below for details on each step:
