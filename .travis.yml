@@ -1,24 +1,21 @@
+sudo: false
 language: node_js
-# Test against three versions of Node.
 node_js:
+  - "7"
   - "6"
   - "5"
   - "4"
-# Test against two versions of graphql (a peer dependency).
 env:
   - GRAPHQL_VERSION=0.6
   - GRAPHQL_VERSION=0.7
   - GRAPHQL_VERSION=0.8
+  - GRAPHQL_VERSION=0.9
+  - GRAPHQL_VERSION=latest
 install:
-  # We need a new version of npm to install babel in such a way that mocha can
-  # find it.
+  # We need a new version of npm to install babel in such a way that mocha can find it.
   - npm install -g npm@latest
   - npm install graphql@${GRAPHQL_VERSION}
   - npm install
-
 script:
   - npm run lint
   - npm test
-
-# Allow Travis tests to run in containers.
-sudo: false
