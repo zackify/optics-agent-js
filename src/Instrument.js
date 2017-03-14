@@ -65,9 +65,9 @@ export const opticsMiddleware = (req, res, next) => {
 };
 
 export const koaMiddleware = (ctx, next) => {
-  preRequest(ctx.req);
+  preRequest(ctx.request);
 
-  return next().then(() => postRequest(ctx.req));
+  return next().then(() => postRequest(ctx.request));
 };
 
 export const instrumentHapiServer = (server) => {
