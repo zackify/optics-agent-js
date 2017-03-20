@@ -84,6 +84,24 @@ const durationHrTimeToNanos = hrtime => ((hrtime[0] * 1e9) + hrtime[1]);
 const dateToTimestamp = date => new Timestamp(
   { seconds: (date / 1000), nanos: (date % 1000) * 1e6 });
 
+const retryRequest = (options, callback) => {
+  let retries = 5;
+  let delayMs = 100;
+  const wrapper = (err, res, body) => {
+    if (err || res.statusCode === 500 || (res.statusCode >= 502 && res.statusCode <= 504)) {
+      retries -= 1;
+      if (retries > 0) {
+        setTimeout(() => {
+          delayMs *= 2;
+          request(options, wrapper);
+        }, delayMs);
+      }
+    }
+    callback(err, res, body);
+  };
+  return request(options, wrapper);
+};
+
 // //////// Sending Data ////////
 
 export const sendMessage = (agent, path, message) => {
@@ -99,8 +117,7 @@ export const sendMessage = (agent, path, message) => {
     body: message.encode().toBuffer(),
     proxy: agent.proxyUrl,
   };
-  request(options, (err, res, body) => {
-    // XXX add retry logic
+  retryRequest(options, (err, res, body) => {
     // XXX add separate flag for disable printing errors?
     if (err) {
       console.log('OPTICS Error trying to report to optics backend:', err.message);  // eslint-disable-line no-console
