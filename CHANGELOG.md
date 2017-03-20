@@ -1,5 +1,8 @@
 # Change log
 
+### 1.1.2
+* Retry requests (which are all idempotent) instead of giving up on first failure.
+
 ### 1.1.1
 * Update peer dependencies to include graphql 0.9.x.
 
