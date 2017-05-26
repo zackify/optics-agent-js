@@ -1,5 +1,8 @@
 # Change log
 
+### 1.1.3
+* Support for graphql-js 0.10.0.
+
 ### 1.1.2
 * Retry requests (which are all idempotent) instead of giving up on first failure.
 
