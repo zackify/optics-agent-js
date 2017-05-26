@@ -98,19 +98,7 @@ This must run before the handler that actually executes your GraphQL queries.  F
 
 #### Koa
 
-Tell your server to run the Optics Agent middleware:
-
-```
-koaServer.use(OpticsAgent.koaMiddleware());
-```
-
-This must run before the handler that actually executes your GraphQL queries.  For the most accurate timings, avoid inserting unnecessary middleware between the Optics Agent middleware and your GraphQL middleware.
-
-#### HAPI
-```
-OpticsAgent.instrumentHapiServer(hapiServer);
-```
-
+Koa is not currently supported. Contributions are welcome.
 
 ### Add a context to each graphql request
 
