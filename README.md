@@ -96,6 +96,12 @@ expressServer.use(OpticsAgent.middleware());
 
 This must run before the handler that actually executes your GraphQL queries.  For the most accurate timings, avoid inserting unnecessary middleware between the Optics Agent middleware and your GraphQL middleware.
 
+#### HAPI
+
+```
+OpticsAgent.instrumentHapiServer(hapiServer);
+```
+
 #### Koa
 
 Koa is not currently supported. Contributions are welcome.
