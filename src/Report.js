@@ -230,7 +230,11 @@ export const sendTrace = (agent, context, info, resolvers) => {
     trace.client_name = client_name;  // eslint-disable-line camelcase
     trace.client_version = client_version;  // eslint-disable-line camelcase
 
-    trace.client_addr = req.connection.remoteAddress; // XXX x-forwarded-for?
+    // koa2 and express both offer req.ip that uses X-Forwarded-For, falls back to remoteAdress
+    // hapi only offers req.connection.remoteAdress, which does not use X-Forwarded-For.
+    // XXX use request.info.remoteAddress in hapi?
+    // XXX use https://www.npmjs.com/package/request-ip to support other ways to retrieve request's IP address?
+    trace.client_addr = req.ip || req.connection.remoteAddress;
     trace.http = new Trace.HTTPInfo();
     trace.http.host = req.headers.host;
     trace.http.path = req.url;

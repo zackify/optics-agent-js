@@ -104,7 +104,24 @@ OpticsAgent.instrumentHapiServer(hapiServer);
 
 #### Koa
 
-Koa is not currently supported. Contributions are welcome.
+Koa is not officially supported, but thanks to community contributions should work with:
+
+```js
+app.use(OpticsAgent.koaMiddleware());
+router.post(
+  '/graphql',
+  graphqlKoa(async ctx => {
+    // create an optic context
+    const opticsContext = OpticsAgent.context(ctx.request);
+    // create a context for each request
+    const context = { opticsContext };
+    return {
+      schema: OpticsAgent.instrumentSchema(schema),
+      context,
+    };
+  })
+);
+```
 
 ### Add a context to each graphql request
 
