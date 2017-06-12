@@ -1,6 +1,8 @@
 sudo: false
 language: node_js
+cache: yarn
 node_js:
+  - "8"
   - "7"
   - "6"
   - "5"
@@ -13,10 +15,9 @@ env:
   - GRAPHQL_VERSION=0.10
   - GRAPHQL_VERSION=latest
 install:
-  # We need a new version of npm to install babel in such a way that mocha can find it.
-  - npm install -g npm@latest
-  - npm install graphql@${GRAPHQL_VERSION}
-  - npm install
+  - npm install -g yarn
+  - yarn add graphql@${GRAPHQL_VERSION}
+  - yarn
 script:
-  - npm run lint
-  - npm test
+  - yarn run lint
+  - yarn test
