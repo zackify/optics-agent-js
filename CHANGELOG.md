@@ -1,5 +1,10 @@
 # Change log
 
+### 1.1.4
+* Community support for koa2, thanks to tychota and sibelius
+* Ugprade to graphql-tools 1.x
+* package.json: prepublish->prepare in scripts
+
 ### 1.1.3
 * Support for graphql-js 0.10.0.
 
