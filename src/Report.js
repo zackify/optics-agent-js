@@ -104,7 +104,7 @@ const retryRequest = (options, callback) => {
 
 // //////// Sending Data ////////
 
-export const sendMessage = (agent, path, message) => {
+export const sendMessage = (agent, path, message, handler) => {
   const headers = {
     'user-agent': 'optics-agent-js',
     'x-api-key': agent.apiKey,
@@ -128,13 +128,17 @@ export const sendMessage = (agent, path, message) => {
     if (agent.printReports) {
       console.log('OPTICS', path, message.encodeJSON(), body);  // eslint-disable-line no-console
     }
+
+    if (handler) {
+      handler(err, res, body);
+    }
   });
 };
 
 
 //  //////// Marshalling Data ////////
 
-export const sendStatsReport = (agent, reportData, startTime, endTime, durationHr) => {
+export const sendStatsReport = (agent, reportData, startTime, endTime, durationHr, handler) => {
   try {
     // build report protobuf object
     const report = new StatsReport();
@@ -188,9 +192,12 @@ export const sendStatsReport = (agent, reportData, startTime, endTime, durationH
       report.per_signature[query] = c;
     });
 
-    sendMessage(agent, '/api/ss/stats', report);
+    sendMessage(agent, '/api/ss/stats', report, handler);
   } catch (e) {
     console.log('Optics sendStatsReport error', e);  // eslint-disable-line no-console
+    if (handler) {
+      handler(e);
+    }
   }
 };
 

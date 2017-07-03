@@ -90,7 +90,17 @@ export default class Agent {
     this.shutdownGracefully = shutdownGracefully !== false;
     if (this.shutdownGracefully) {
       process.on('exit', () => this.stop());
-      process.on('SIGINT', () => this.stop());
+      process.on('SIGINT', () => {
+        const isOnlyListener = process.listenerCount('SIGINT') === 1;
+        this.stop((err) => {
+          if (isOnlyListener) {
+            if (err && !process.exitCode) {
+              process.exitCode = 1;
+            }
+            process.exit();
+          }
+        });
+      });
     }
   }
 
@@ -132,17 +142,17 @@ export default class Agent {
     return newContext(req, this);
   }
 
-  stop() {
+  stop(handler) {
     if (this.reportTimer) {
       clearInterval(this.reportTimer);
       this.reportTimer = false;
-      this.sendStatsReport();
+      this.sendStatsReport(handler);
     }
   }
 
   // XXX This is not part of the public API.
   //     https://github.com/apollostack/optics-agent-js/issues/51
-  sendStatsReport() {
+  sendStatsReport(handler) {
     if (!this.schema) {
       this.debugFn('Optics agent: schema not instrumented. Make sure to call `instrumentSchema`.');
       return;
@@ -156,6 +166,6 @@ export default class Agent {
     this.reportStartTime = +new Date();
     this.pendingResults = {};
     // actually send
-    sendStatsReport(this, reportData, oldStartTime, this.reportStartTime, durationHr);
+    sendStatsReport(this, reportData, oldStartTime, this.reportStartTime, durationHr, handler);
   }
 }
