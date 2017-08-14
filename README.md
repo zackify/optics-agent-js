@@ -5,12 +5,12 @@ Here are the steps to enable Apollo Optics agent in your app. See below for deta
 * Install the NPM package in your app: `npm install optics-agent --save`
 * Import the package in your main js file: `import OpticsAgent from 'optics-agent';`
 * Get an API key from the Optics web interface and configure the agent. Either:
- * Set the `OPTICS_API_KEY` environment variable to your API key
- * Set the API key and more with `OpticsAgent.configureAgent({ options });`
+  * Set the `OPTICS_API_KEY` environment variable to your API key
+  * Set the API key and more with `OpticsAgent.configureAgent({ options });`
 * Instrument your app. In any order:
- * Instrument your schema: `OpticsAgent.instrumentSchema(executableSchema);`
- * Add the middleware: `expressServer.use(OpticsAgent.middleware());`
- * Add to your GraphQL context object: `context.opticsContext = OpticsAgent.context(req);`
+  * Instrument your schema: `OpticsAgent.instrumentSchema(executableSchema);`
+  * Add the middleware: `expressServer.use(OpticsAgent.middleware());`
+  * Add to your GraphQL context object: `context.opticsContext = OpticsAgent.context(req);`
 
 ## Version requirements
 
