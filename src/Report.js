@@ -229,6 +229,7 @@ export const sendTrace = (agent, context, info, resolvers) => {
     if (agent.reportVariables) {
       trace.details.variables = {};
       Object.keys(info.variableValues).forEach((k) => {
+        if(k.match(/password/) return; 
         trace.details.variables[k] = new Buffer(JSON.stringify(info.variableValues[k]), 'utf8');
       });
     }
