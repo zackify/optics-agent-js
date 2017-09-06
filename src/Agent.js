@@ -31,7 +31,7 @@ export default class Agent {
     const {
       apiKey, debugFn, normalizeVersion, normalizeQuery,
       endpointUrl, proxyUrl, reportIntervalMs, printReports,
-      reportTraces, reportVariables, shutdownGracefully,
+      reportTraces, reportVariables, shutdownGracefully, variableBlacklist,
     } = options || {};
     // XXX We don't actually intend for these fields to be part of a public
     //     stable API. https://github.com/apollostack/optics-agent-js/issues/51
@@ -60,6 +60,7 @@ export default class Agent {
     this.printReports = !!printReports;
     this.reportTraces = reportTraces !== false;
     this.reportVariables = reportVariables !== false;
+    this.variableBlacklist = variableBlacklist || ['password'];
 
     this.reportIntervalMs = reportIntervalMs || DEFAULT_REPORT_INTERVAL_MS;
     if (this.reportIntervalMs < MIN_REPORT_INTERVAL_MS) {
