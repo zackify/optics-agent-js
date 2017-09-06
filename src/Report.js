@@ -229,8 +229,7 @@ export const sendTrace = (agent, context, info, resolvers) => {
     if (agent.reportVariables) {
       trace.details.variables = {};
       Object.keys(info.variableValues).forEach((k) => {
-        if(agent.variableBlacklist.includes(k)) return; 
-        
+        if (agent.variableBlacklist.includes(k)) return;
         trace.details.variables[k] = new Buffer(JSON.stringify(info.variableValues[k]), 'utf8');
       });
     }
