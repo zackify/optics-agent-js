@@ -59,6 +59,8 @@ Options include:
 
 * `reportVariables`: Boolean. Send the query variables along with traces. Defaults to true.
 
+* `variableBlacklist`: Array. Field names to block from being sent to optics. Defaults to `['password']`
+
 * `printReports`: Boolean. Print a JSON version of reports as they are sent. This may be useful for debugging. Defaults to false.
 
 * `normalizeQuery`: Function([GraphQLResolveInfo](http://graphql.org/graphql-js/type/#graphqlobjecttype))⇒String. Called to determine the query shape for for a GraphQL query. You shouldn't need to set this unless you are debugging.
